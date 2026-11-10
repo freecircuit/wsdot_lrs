@@ -1,0 +1,33 @@
+[project]
+name = "wsdot"
+version = "0.1.0"
+description = "ETL and analysis for WSDOT datasets"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "contextily>=1.7.1",
+    "dot>=0.3.0",
+    "dotenv>=0.9.9",
+    "env>=0.1.0",
+    "folium>=0.20.0",
+    "geoalchemy2>=0.21.0",
+    "geopandas>=1.2.0",
+    "jupyter>=1.1.1",
+    "mapclassify>=2.11.0",
+    "matplotlib>=3.11.2",
+    "numpy>=2.5.4",
+    "pandas>=3.1.1",
+    "polars>=2.1.0",
+    "psycopg>=3.3.8",
+    "pyodbc>=5.5.0",
+    "requests>=2.34.2",
+    "seaborn>=0.13.2",
+    "sqlalchemy>=2.1.8",
+]
+
+[project.scripts]
+wsdot = "wsdot:main"
+
+[build-system]
+requires = ["uv_build>=0.13.6,<0.14.0"]
+build-backend = "uv_build"
