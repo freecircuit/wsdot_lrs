@@ -1,6 +1,6 @@
 # WSDOT LRS Spatial ETL Pipeline
 
-A ETL pipeline for Washington State Department of Transportation (WSDOT) datasets, transitioning raw ArcGIS REST services into a production-ready PostGIS database.
+A ETL pipeline for Washington State Department of Transportation (WSDOT) datasets, transitioning raw ArcGIS REST services into a PostGIS database.
 
 ---
 
