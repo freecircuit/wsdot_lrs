@@ -6,7 +6,7 @@ dist/
 wheels/
 *.egg-info
 .ipynb_checkpoints
-.python_version
+.python-version
 
 # Virtual environments
 .venv
