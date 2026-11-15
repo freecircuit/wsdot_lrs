@@ -80,6 +80,14 @@ SELECT
 FROM staging.local_public_roads;
 ALTER TABLE ref.public_roads ADD PRIMARY KEY (objectid);
 CREATE INDEX pub_roads_geom_idx ON ref.public_roads USING GIST (geom);
+CREATE INDEX idx_public_roads_lrs_route_upper ON ref.public_roads_lrs (UPPER(route_identifier));
+CREATE INDEX idx_public_roads_lrs_route_base
+ON ref.public_roads_lrs
+(
+    UPPER(
+        REGEXP_REPLACE(route_identifier, '[id]$', '', 'i')
+    )
+);
 ANALYZE ref.public_roads;
 
 -- Local Public Roads Linear Referencing
