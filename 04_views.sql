@@ -1,8 +1,8 @@
--- Create QA/QC and analytical views
--- off reference tables, assign to analysis schema
+-- Create views from reference tables for QA/QC checks
+-- and analysis results for the qa and analysis schemas
 
--- LRS state routes with mile posts
-CREATE OR REPLACE VIEW analysis.sr_mp_locations_evw AS
+-- QA/QC view joining mileposts with state route LRS table
+CREATE OR REPLACE VIEW qa.sr_mp_locations_evw AS
 SELECT
     mp.objectid,
     mp.route_id,
