@@ -41,9 +41,9 @@ def main():
 
     print(">>> WSDOT Spatial Pipeline Initialized")
 
-    # --- PHASE 1: Database Infrastructure & Schemas ---
+    # --- Database Infrastructure & Schemas ---
     if not args.skip_sql:
-        print("\n=== PHASE 1: Bootstrapping Database Extensions & Schemas ===")
+        print("\n=== Creating Database Extensions & Schemas ===")
         try:
             # 1. Enable PostGIS extensions
             run_sql_script(engine, "01_init.sql")
@@ -55,11 +55,12 @@ def main():
             print(f"Error during database initialization: {e}")
             raise
 
-    # --- PHASE 2: Python Ingestion (Staging Layer) ---
-    print(f"\n=== PHASE 2: Executing Python Ingestion ({args.mode.upper()} mode) ===")
+    # --- Python Ingestion (Staging Layer) ---
+    print(f"\n=== Executing Python Ingestion ({args.mode.upper()} mode) ===")
     run_etl(engine, mode=args.mode)
 
     print("\n>>> Pipeline execution completed successfully!")
+
 
 if __name__ == "__main__":
     main()
