@@ -564,3 +564,10 @@ FROM qa.sr_bridge_tunnel_evw srbr
 JOIN ref.all_bridge_tunnel br
 ON br.objectid = srbr.objectid
 where arm_qa_status LIKE 'ARM discrepancy';
+
+-- Public Roads Bridges View
+CREATE OR REPLACE VIEW qa.bt_pub AS
+SELECT br.*, pub.derived_arm, pub.distance_to_route, ROUND(pub.arm_difference_feet::numeric, 3) AS diff_feet, pub.arm_qa_status
+FROM qa.bt_pub_rd_evw pub
+JOIN ref.all_bridge_tunnel br
+ON br.objectid = pub.objectid;
