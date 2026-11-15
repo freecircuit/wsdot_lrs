@@ -48,7 +48,7 @@ def main():
             # 1. Enable PostGIS extensions
             run_sql_script(engine, "01_init.sql")
             
-            # 2. Build Medallion schemas and assign RBAC permissions
+            # 2. Build schemas
             run_sql_script(engine, "02_core.sql")
             
         except Exception as e:
@@ -60,6 +60,11 @@ def main():
     run_etl(engine, mode=args.mode)
 
     print("\n>>> Pipeline execution completed successfully!")
+
+    print("Cleaning reference tables and creating QA/QC Views")
+    run_sql_script(engine, "03_tables.sql")
+    run_sql_script(engine, "04_views.sql")
+    
 
 
 if __name__ == "__main__":
