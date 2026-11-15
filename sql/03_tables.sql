@@ -2,9 +2,9 @@
 -- And assign to schema ref for non-writing reference tables
 
 -- State Route Linear Referencing
-DROP TABLE IF EXISTS ref.state_routes_lrs;
+DROP TABLE IF EXISTS ref.state_route_lrs;
 
-CREATE TABLE ref.state_routes_lrs AS
+CREATE TABLE ref.state_route_lrs AS
 SELECT
 	objectid,
 	routeidentifier AS route_identifier,
@@ -25,9 +25,9 @@ SELECT
     )::geometry(MultiLineStringM, 2927) AS geom,
     source
 FROM staging.state_route_lrs;
-ALTER TABLE ref.state_routes_lrs ADD PRIMARY KEY (objectid);
-CREATE INDEX state_lrs_geom_idx ON ref.state_routes_lrs USING GIST (geom);
-ANALYZE ref.state_routes_lrs;
+ALTER TABLE ref.state_route_lrs ADD PRIMARY KEY (objectid);
+CREATE INDEX state_lrs_geom_idx ON ref.state_route_lrs USING GIST (geom);
+ANALYZE ref.state_route_lrs;
 
 -- CRAB Routes Linear Referencing
 DROP TABLE IF EXISTS ref.crab_routes;
@@ -127,8 +127,8 @@ ANALYZE ref.counties;
 -- FEATURES
 
 --Roadway Width
-DROP TABLE IF EXISTS event.roadway_width;
-CREATE TABLE event.roadway_width AS
+DROP TABLE IF EXISTS ref.roadway_width;
+CREATE TABLE ref.roadway_width AS
 SELECT
 	objectid,
 	routeidentifier AS route_identifier,
@@ -146,13 +146,13 @@ SELECT
     ) AS geom,
     source
 FROM staging.roadway_width;
-ALTER TABLE event.roadway_width ADD PRIMARY KEY (objectid);
-CREATE INDEX roadway_width_geom_idx ON event.roadway_width USING GIST (geom);
-ANALYZE event.roadway_width;
+ALTER TABLE ref.roadway_width ADD PRIMARY KEY (objectid);
+CREATE INDEX roadway_width_geom_idx ON ref.roadway_width USING GIST (geom);
+ANALYZE ref.roadway_width;
 
 -- Traffic Counts
-DROP TABLE IF EXISTS event.traffic_counts;
-CREATE TABLE event.traffic_counts AS
+DROP TABLE IF EXISTS ref.traffic_counts;
+CREATE TABLE ref.traffic_counts AS
 SELECT
 	objectid,
 	routeidentifier AS route_identifier,
@@ -174,13 +174,13 @@ SELECT
     ) AS geom,
     source
 FROM staging.traffic_counts;
-ALTER TABLE event.traffic_counts ADD PRIMARY KEY (objectid);
-CREATE INDEX traffic_counts_geom_idx ON event.traffic_counts USING GIST (geom);
-ANALYZE event.traffic_counts;
+ALTER TABLE ref.traffic_counts ADD PRIMARY KEY (objectid);
+CREATE INDEX traffic_counts_geom_idx ON ref.traffic_counts USING GIST (geom);
+ANALYZE ref.traffic_counts;
 
 --State Route Events
-DROP TABLE IF EXISTS event.state_hwy_events;
-CREATE TABLE event.state_hwy_events AS
+DROP TABLE IF EXISTS ref.state_hwy_events;
+CREATE TABLE ref.state_hwy_events AS
 SELECT
 	objectid,
 	routeidentifier AS route_identifier,
@@ -200,13 +200,13 @@ SELECT
     ) AS geom,
     source
 FROM staging.state_hwy_events;
-ALTER TABLE event.state_hwy_events ADD PRIMARY KEY (objectid);
-CREATE INDEX state_hwy_events_geom_idx ON event.state_hwy_events USING GIST (geom);
-ANALYZE event.state_hwy_events;
+ALTER TABLE ref.state_hwy_events ADD PRIMARY KEY (objectid);
+CREATE INDEX state_hwy_events_geom_idx ON ref.state_hwy_events USING GIST (geom);
+ANALYZE ref.state_hwy_events;
 
 --Non-State Route Events
-DROP TABLE IF EXISTS event.nonstate_hwy_events;
-CREATE TABLE event.nonstate_hwy_events AS
+DROP TABLE IF EXISTS ref.nonstate_hwy_events;
+CREATE TABLE ref.nonstate_hwy_events AS
 SELECT
 	objectid,
 	routeidentifier AS route_identifier,
@@ -222,13 +222,13 @@ SELECT
     ) AS geom,
     source
 FROM staging.nonstate_hwy_events;
-ALTER TABLE event.nonstate_hwy_events ADD PRIMARY KEY (objectid);
-CREATE INDEX nonstate_hwy_events_geom_idx ON event.nonstate_hwy_events USING GIST (geom);
-ANALYZE event.nonstate_hwy_events;
+ALTER TABLE ref.nonstate_hwy_events ADD PRIMARY KEY (objectid);
+CREATE INDEX nonstate_hwy_events_geom_idx ON ref.nonstate_hwy_events USING GIST (geom);
+ANALYZE ref.nonstate_hwy_events;
 
 --Fish Passage Barriers
-DROP TABLE IF EXISTS inventory.fish_passage_barrier_current;
-CREATE TABLE inventory.fish_passage_barrier_current AS
+DROP TABLE IF EXISTS ref.fish_passage_barrier_current;
+CREATE TABLE ref.fish_passage_barrier_current AS
 SELECT
 	objectid,
 	site_num AS site_number,
@@ -252,49 +252,145 @@ SELECT
     ) AS geom,
     source
 FROM staging.fish_passage_injunction_barrier_current;
-ALTER TABLE inventory.fish_passage_barrier_current ADD PRIMARY KEY (objectid);
-CREATE INDEX fish_passage_barrier_current_geom_idx ON inventory.fish_passage_barrier_current USING GIST (geom);
-ANALYZE inventory.fish_passage_barrier_current;
+ALTER TABLE ref.fish_passage_barrier_current ADD PRIMARY KEY (objectid);
+CREATE INDEX fish_passage_barrier_current_geom_idx ON ref.fish_passage_barrier_current USING GIST (geom);
+ANALYZE ref.fish_passage_barrier_current;
 
 -- Status of Total Fish Barriers
-DROP TABLE IF EXISTS inventory.fish_passage_status;
-CREATE TABLE inventory.fish_passage_status AS
+DROP TABLE IF EXISTS ref.fish_passage_status;
+CREATE TABLE ref.fish_passage_status AS
 SELECT 
     *,
     ST_Transform(ST_SetSRID(geometry, 3857), 2927) AS geom
 FROM staging.fish_passage_inventory_barrier_status;
-ALTER TABLE inventory.fish_passage_status DROP COLUMN geometry;
-ALTER TABLE inventory.fish_passage_status ADD PRIMARY KEY (objectid);
-CREATE INDEX fish_passage_status_geom_idx ON inventory.fish_passage_status USING GIST (geom);
-ANALYZE inventory.fish_passage_status;
+ALTER TABLE ref.fish_passage_status DROP COLUMN geometry;
+ALTER TABLE ref.fish_passage_status ADD PRIMARY KEY (objectid);
+CREATE INDEX fish_passage_status_geom_idx ON ref.fish_passage_status USING GIST (geom);
+ANALYZE ref.fish_passage_status;
 
 -- All Bridges and Tunnels
-DROP TABLE IF EXISTS inventory.all_bridge_tunnel;
-CREATE TABLE inventory.all_bridge_tunnel AS
+DROP TABLE IF EXISTS ref.all_bridge_tunnel;
+CREATE TABLE ref.all_bridge_tunnel AS
 SELECT 
     *,
     ST_Transform(ST_SetSRID(geometry, 3857), 2927) AS geom
 FROM staging.all_bridge_and_tunnel_inventory_state_local;
-ALTER TABLE inventory.all_bridge_tunnel DROP COLUMN geometry;
-ALTER TABLE inventory.all_bridge_tunnel ADD PRIMARY KEY (objectid);
-CREATE INDEX all_bridge_tunnel_geom_idx ON inventory.all_bridge_tunnel USING GIST (geom);
-ANALYZE inventory.all_bridge_tunnel;
+ALTER TABLE ref.all_bridge_tunnel DROP COLUMN geometry;
+ALTER TABLE ref.all_bridge_tunnel ADD PRIMARY KEY (objectid);
+CREATE INDEX all_bridge_tunnel_geom_idx ON ref.all_bridge_tunnel USING GIST (geom);
+ANALYZE ref.all_bridge_tunnel;
 
 -- Current Projects for Dig Once Datasets
-DROP TABLE IF EXISTS project.current_projects;
-CREATE TABLE project.current_projects AS
+DROP TABLE IF EXISTS ref.current_projects;
+CREATE TABLE ref.current_projects AS
 SELECT 
     *,
     ST_Transform(ST_SetSRID(geometry, 3857), 2927) AS geom
 FROM staging.wsdot_current_project_delivery_plan;
-ALTER TABLE project.current_projects DROP COLUMN geometry;
-ALTER TABLE project.current_projects ADD PRIMARY KEY (objectid);
-CREATE INDEX current_projects_geom_idx ON project.current_projects USING GIST (geom);
-ANALYZE project.current_projects;
+ALTER TABLE ref.current_projects DROP COLUMN geometry;
+ALTER TABLE ref.current_projects ADD PRIMARY KEY (objectid);
+CREATE INDEX current_projects_geom_idx ON ref.current_projects USING GIST (geom);
+ANALYZE ref.current_projects;
+
+-- Mile Post Tenth of a Mile
+DROP TABLE IF EXISTS ref.milepost_tenth_mile;
+CREATE TABLE ref.milepost_tenth_mile AS
+SELECT
+	objectid,
+	routeid AS route_id,
+	arm AS actual_route_mile,
+	srmp AS mile_post,
+	direction,
+	longitude AS lon,
+	latitude AS lat,
+	stateroutenumber AS route_number,
+	aheadbackind,
+	lrs_date,
+	ST_Transform(
+        ST_SetSRID((geometry), 3857), 
+        2927
+    ) AS geom,
+    source
+FROM staging.milepost_tenth_mile;
+ALTER TABLE ref.milepost_tenth_mile ADD PRIMARY KEY (objectid);
+CREATE INDEX milepost_tenth_mile_geom_idx ON ref.milepost_tenth_mile USING GIST (geom);
+ANALYZE ref.milepost_tenth_mile;
+
+-- Mile Post One Mile
+DROP TABLE IF EXISTS ref.milepost_one_mile;
+CREATE TABLE ref.milepost_one_mile AS
+SELECT
+	objectid,
+	routeid AS route_id,
+	arm AS actual_route_mile,
+	srmp AS mile_post,
+	direction,
+	longitude AS lon,
+	latitude AS lat,
+	stateroutenumber AS route_number,
+	aheadbackind,
+	lrs_date,
+	ST_Transform(
+        ST_SetSRID((geometry), 3857), 
+        2927
+    ) AS geom,
+    source
+FROM staging.milepost_1_mile;
+ALTER TABLE ref.milepost_one_mile ADD PRIMARY KEY (objectid);
+CREATE INDEX milepost_one_mile_geom_idx ON ref.milepost_one_mile USING GIST (geom);
+ANALYZE ref.milepost_one_mile;
+
+-- Milepost Five Mile
+DROP TABLE IF EXISTS ref.milepost_five_mile;
+CREATE TABLE ref.milepost_five_mile AS
+SELECT
+	objectid,
+	routeid AS route_id,
+	arm AS actual_route_mile,
+	srmp AS mile_post,
+	direction,
+	longitude AS lon,
+	latitude AS lat,
+	stateroutenumber AS route_number,
+	aheadbackind,
+	lrs_date,
+	ST_Transform(
+        ST_SetSRID((geometry), 3857), 
+        2927
+    ) AS geom,
+    source
+FROM staging.milepost_5_mile;
+ALTER TABLE ref.milepost_five_mile ADD PRIMARY KEY (objectid);
+CREATE INDEX milepost_five_mile_geom_idx ON ref.milepost_five_mile USING GIST (geom);
+ANALYZE ref.milepost_five_mile;
+
+-- Milepost Ten Mile
+DROP TABLE IF EXISTS ref.milepost_ten_mile;
+CREATE TABLE ref.milepost_ten_mile AS
+SELECT
+	objectid,
+	routeid AS route_id,
+	arm AS actual_route_mile,
+	srmp AS mile_post,
+	direction,
+	longitude AS lon,
+	latitude AS lat,
+	stateroutenumber AS route_number,
+	aheadbackind,
+	lrs_date,
+	ST_Transform(
+        ST_SetSRID((geometry), 3857), 
+        2927
+    ) AS geom,
+    source
+FROM staging.milepost_10_mile;
+ALTER TABLE ref.milepost_ten_mile ADD PRIMARY KEY (objectid);
+CREATE INDEX milepost_ten_mile_geom_idx ON ref.milepost_ten_mile USING GIST (geom);
+ANALYZE ref.milepost_ten_mile;
 
 -- Primary State Route reference
-CREATE INDEX state_routes_lrs_route_idx
-ON ref.state_routes_lrs (route_identifier);
+CREATE INDEX state_route_lrs_route_idx
+ON ref.state_route_lrs (route_identifier);
 
 -- County road reference
 CREATE INDEX crab_routes_route_idx
@@ -310,13 +406,29 @@ ON ref.public_roads_lrs (route_identifier);
 
 -- Linear events
 CREATE INDEX roadway_width_route_idx
-ON event.roadway_width (route_identifier);
+ON ref.roadway_width (route_identifier);
 
 CREATE INDEX state_hwy_events_route_idx
-ON event.state_hwy_events (route_identifier);
+ON ref.state_hwy_events (route_identifier);
 
 CREATE INDEX nonstate_hwy_events_route_idx
-ON event.nonstate_hwy_events (route_identifier);
+ON ref.nonstate_hwy_events (route_identifier);
 
 CREATE INDEX traffic_counts_route_idx
-ON event.traffic_counts (route_identifier);
+ON ref.traffic_counts (route_identifier);
+
+-- Primary Tenth Mile Pose reference
+CREATE INDEX tenth_mile_idx
+ON ref.milepost_tenth_mile (route_id);
+
+-- Primary One Mile Pose reference
+CREATE INDEX one_mile_idx
+ON ref.milepost_one_mile (route_id);
+
+-- Primary five Mile Pose reference
+CREATE INDEX five_mile_idx
+ON ref.milepost_five_mile (route_id);
+
+-- Primary Ten Mile Pose reference
+CREATE INDEX ten_mile_idx
+ON ref.milepost_ten_mile (route_id);
