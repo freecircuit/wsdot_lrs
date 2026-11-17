@@ -55,6 +55,9 @@ def main():
             print(f"Error during database initialization: {e}")
             raise
 
+    # --- Drop dependancies on cleaned tables ---
+    run_sql_script(engine, "00_drop_derived.sql")
+    
     # --- Python Ingestion (Staging Layer) ---
     print(f"\n=== Executing Python Ingestion ({args.mode.upper()} mode) ===")
     run_etl(engine, mode=args.mode)
