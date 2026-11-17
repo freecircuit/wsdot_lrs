@@ -22,7 +22,7 @@ A ETL pipeline for Washington State Department of Transportation (WSDOT) dataset
 
 ---
 
-![Bridge_Tunnel](/home/freecircuit/repos/wsdot/Bridge_Tunnel.png)
+![Bridge_Tunnel](wsdot_lrs/Bridge_Tunnel.png)
 
 ## Quickstart
 
