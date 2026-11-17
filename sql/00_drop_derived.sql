@@ -19,3 +19,13 @@ DROP VIEW IF EXISTS qa.vw_bt_arm;
 
 -- Primary bridge/tunnel materialized view
 DROP MATERIALIZED VIEW IF EXISTS qa.sr_bridge_tunnel_evw;
+
+-- Downstream Dig Once QA and analysis objects first
+DROP VIEW IF EXISTS qa.dig_once_lrs_review;
+
+DROP MATERIALIZED VIEW IF EXISTS analysis.dig_once_lrs;
+
+DROP VIEW IF EXISTS analysis.dig_once_lrs_candidates;
+
+-- Base project-filtering view
+DROP VIEW IF EXISTS analysis.dig_once;
