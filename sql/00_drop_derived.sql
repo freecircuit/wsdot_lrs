@@ -3,6 +3,7 @@ CREATE SCHEMA IF NOT EXISTS qa;
 CREATE SCHEMA IF NOT EXISTS analysis;
 
 -- Dig Once analysis dependencies
+DROP VIEW IF EXISTS qa.dig_once_lrs_coverage_gaps;
 DROP VIEW IF EXISTS qa.dig_once_lrs_review;
 DROP MATERIALIZED VIEW IF EXISTS analysis.dig_once_lrs;
 DROP VIEW IF EXISTS analysis.dig_once_lrs_candidates;
