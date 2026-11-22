@@ -439,3 +439,29 @@ ON ref.milepost_five_mile (route_id);
 -- Primary Ten Mile Pose reference
 CREATE INDEX ten_mile_idx
 ON ref.milepost_ten_mile (route_id);
+
+-- ============================================================
+-- 00B. ENSURE INDEXES ON REF JOIN KEYS
+-- ============================================================
+
+CREATE INDEX IF NOT EXISTS idx_ref_sr_lrs_num_dir
+    ON ref.state_route_lrs (state_route_number, inventory_direction);
+
+CREATE INDEX IF NOT EXISTS idx_ref_sr_lrs_route_base_upper
+    ON ref.state_route_lrs (UPPER(REGEXP_REPLACE(route_identifier, '[id]$', '', 'i')));
+
+CREATE INDEX IF NOT EXISTS idx_ref_pub_roads_lrs_route_upper
+    ON ref.public_roads_lrs (UPPER(route_identifier));
+
+CREATE INDEX IF NOT EXISTS idx_ref_pub_roads_lrs_route_base_upper
+    ON ref.public_roads_lrs (UPPER(REGEXP_REPLACE(route_identifier, '[id]$', '', 'i')));
+
+CREATE INDEX IF NOT EXISTS idx_ref_crab_routes_route_upper
+    ON ref.crab_routes (UPPER(route_identifier));
+
+CREATE INDEX IF NOT EXISTS idx_ref_crab_routes_route_base_upper
+    ON ref.crab_routes (UPPER(REGEXP_REPLACE(route_identifier, '[id]$', '', 'i')));
+
+ANALYZE ref.state_route_lrs;
+ANALYZE ref.public_roads_lrs;
+ANALYZE ref.crab_routes;

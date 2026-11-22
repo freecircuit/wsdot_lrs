@@ -1,18 +1,34 @@
 -- Create tables and views from reference tables for QA/QC checks
--- and analysis results for the qa and analysis schemas-- Remove existing QA objects in dependency order
+-- and analysis results for the qa and analysis schemas.
+-- Assumes EPSG:2927 (Washington South, US survey feet) on ref geometries.
 
+CREATE SCHEMA IF NOT EXISTS qa;
+CREATE SCHEMA IF NOT EXISTS analysis;
+
+-- ============================================================
+-- 00. DROP EXISTING QA & ANALYSIS OBJECTS IN DEPENDENCY ORDER
+-- ============================================================
+
+DROP VIEW IF EXISTS qa.dig_once_lrs_coverage_gaps;
+DROP VIEW IF EXISTS qa.dig_once_lrs_review;
+DROP MATERIALIZED VIEW IF EXISTS analysis.dig_once_lrs;
+DROP VIEW IF EXISTS analysis.dig_once_lrs_candidates;
+DROP VIEW IF EXISTS analysis.dig_once;
+
+DROP VIEW IF EXISTS qa.vw_bt_arm_sensitivity;
+DROP VIEW IF EXISTS qa.vw_bt_arm;
 DROP VIEW IF EXISTS qa.bt_pub;
-
-DROP MATERIALIZED VIEW IF EXISTS qa.bt_crab_evw;
-
-DROP MATERIALIZED VIEW IF EXISTS qa.bt_pub_rd_evw;
-
 DROP VIEW IF EXISTS qa.bt_arm_discrepancy;
-
+DROP MATERIALIZED VIEW IF EXISTS qa.bt_crab_evw;
+DROP MATERIALIZED VIEW IF EXISTS qa.bt_pub_rd_evw;
 DROP MATERIALIZED VIEW IF EXISTS qa.sr_bridge_tunnel_evw;
 
--- QA/QC table joining mileposts with state route LRS table
--- One mile LRS
+
+-- ============================================================
+-- 01. MILEPOST TO STATE ROUTE LRS LOCATION TABLES
+-- ============================================================
+
+-- One-mile LRS
 DROP TABLE IF EXISTS qa.sr_mp_locations;
 CREATE TABLE qa.sr_mp_locations AS
 SELECT
@@ -21,53 +37,34 @@ SELECT
     mp.direction,
     mp.actual_route_mile,
     mp.mile_post,
-
     sr.route_identifier,
-
     sr.inventory_direction,
-	sr.geom AS sr_lrs_geom,
-
+    sr.geom AS sr_lrs_geom,
     ST_Distance(mp.geom, sr.geom) AS section_distance,
-
     mp.geom AS source_location,
-
-    ST_LocateAlong(
-        sr.geom,
-        mp.actual_route_mile
-    ) AS lrs_location,
-
-    ST_Distance(
-        mp.geom,
-        ST_LocateAlong(sr.geom, mp.actual_route_mile)
-    ) AS offset_distance
-
+    ST_LocateAlong(sr.geom, mp.actual_route_mile) AS lrs_location,
+    ST_Distance(mp.geom, ST_LocateAlong(sr.geom, mp.actual_route_mile)) AS offset_distance
 FROM ref.milepost_one_mile mp
-
 LEFT JOIN LATERAL (
     SELECT
         sr.route_identifier,
         sr.inventory_direction,
         sr.geom
-
     FROM ref.state_route_lrs sr
-
     WHERE sr.state_route_number = mp.route_id
       AND sr.inventory_direction = mp.direction
-
     ORDER BY ST_Distance(mp.geom, sr.geom)
-
     LIMIT 1
-
 ) sr ON TRUE
-
 WHERE mp.actual_route_mile IS NOT NULL;
+
 ALTER TABLE qa.sr_mp_locations ADD PRIMARY KEY (objectid);
 CREATE INDEX sr_mp_locations_geom_idx ON qa.sr_mp_locations USING GIST (sr_lrs_geom);
 CREATE INDEX sr_mp_locations2_geom_idx ON qa.sr_mp_locations USING GIST (source_location);
 CREATE INDEX sr_mp_locations3_geom_idx ON qa.sr_mp_locations USING GIST (lrs_location);
 ANALYZE qa.sr_mp_locations;
 
--- 5 mile LRS
+-- Five-mile LRS
 DROP TABLE IF EXISTS qa.sr_5m_locations;
 CREATE TABLE qa.sr_5m_locations AS
 SELECT
@@ -76,53 +73,34 @@ SELECT
     mp.direction,
     mp.actual_route_mile,
     mp.mile_post,
-
     sr.route_identifier,
-    
     sr.inventory_direction,
-	sr.geom AS sr_lrs_geom,
-
+    sr.geom AS sr_lrs_geom,
     ST_Distance(mp.geom, sr.geom) AS section_distance,
-
     mp.geom AS source_location,
-
-    ST_LocateAlong(
-        sr.geom,
-        mp.actual_route_mile
-    ) AS lrs_location,
-
-    ST_Distance(
-        mp.geom,
-        ST_LocateAlong(sr.geom, mp.actual_route_mile)
-    ) AS offset_distance
-
+    ST_LocateAlong(sr.geom, mp.actual_route_mile) AS lrs_location,
+    ST_Distance(mp.geom, ST_LocateAlong(sr.geom, mp.actual_route_mile)) AS offset_distance
 FROM ref.milepost_five_mile mp
-
 LEFT JOIN LATERAL (
     SELECT
         sr.route_identifier,
         sr.inventory_direction,
         sr.geom
-
     FROM ref.state_route_lrs sr
-
     WHERE sr.state_route_number = mp.route_id
       AND sr.inventory_direction = mp.direction
-
     ORDER BY ST_Distance(mp.geom, sr.geom)
-
     LIMIT 1
-
 ) sr ON TRUE
-
 WHERE mp.actual_route_mile IS NOT NULL;
+
 ALTER TABLE qa.sr_5m_locations ADD PRIMARY KEY (objectid);
 CREATE INDEX sr_5m_locations_geom_idx ON qa.sr_5m_locations USING GIST (sr_lrs_geom);
 CREATE INDEX sr_5m_locations2_geom_idx ON qa.sr_5m_locations USING GIST (source_location);
 CREATE INDEX sr_5m_locations3_geom_idx ON qa.sr_5m_locations USING GIST (lrs_location);
 ANALYZE qa.sr_5m_locations;
 
---10 Mile LRS
+-- Ten-mile LRS
 DROP TABLE IF EXISTS qa.sr_10m_locations;
 CREATE TABLE qa.sr_10m_locations AS
 SELECT
@@ -131,53 +109,34 @@ SELECT
     mp.direction,
     mp.actual_route_mile,
     mp.mile_post,
-
     sr.route_identifier,
-    
     sr.inventory_direction,
-	sr.geom AS sr_lrs_geom,
-
+    sr.geom AS sr_lrs_geom,
     ST_Distance(mp.geom, sr.geom) AS section_distance,
-
     mp.geom AS source_location,
-
-    ST_LocateAlong(
-        sr.geom,
-        mp.actual_route_mile
-    ) AS lrs_location,
-
-    ST_Distance(
-        mp.geom,
-        ST_LocateAlong(sr.geom, mp.actual_route_mile)
-    ) AS offset_distance
-
+    ST_LocateAlong(sr.geom, mp.actual_route_mile) AS lrs_location,
+    ST_Distance(mp.geom, ST_LocateAlong(sr.geom, mp.actual_route_mile)) AS offset_distance
 FROM ref.milepost_ten_mile mp
-
 LEFT JOIN LATERAL (
     SELECT
         sr.route_identifier,
         sr.inventory_direction,
         sr.geom
-
     FROM ref.state_route_lrs sr
-
     WHERE sr.state_route_number = mp.route_id
       AND sr.inventory_direction = mp.direction
-
     ORDER BY ST_Distance(mp.geom, sr.geom)
-
     LIMIT 1
-
 ) sr ON TRUE
-
 WHERE mp.actual_route_mile IS NOT NULL;
+
 ALTER TABLE qa.sr_10m_locations ADD PRIMARY KEY (objectid);
 CREATE INDEX sr_10m_locations_geom_idx ON qa.sr_10m_locations USING GIST (sr_lrs_geom);
 CREATE INDEX sr_10m_locations2_geom_idx ON qa.sr_10m_locations USING GIST (source_location);
 CREATE INDEX sr_10m_locations3_geom_idx ON qa.sr_10m_locations USING GIST (lrs_location);
 ANALYZE qa.sr_10m_locations;
 
---tenth of mile LRS
+-- Tenth-of-a-mile LRS
 DROP TABLE IF EXISTS qa.sr_10thm_locations;
 CREATE TABLE qa.sr_10thm_locations AS
 SELECT
@@ -186,412 +145,238 @@ SELECT
     mp.direction,
     mp.actual_route_mile,
     mp.mile_post,
-
     sr.route_identifier,
-    
     sr.inventory_direction,
-	sr.geom AS sr_lrs_geom,
-
+    sr.geom AS sr_lrs_geom,
     ST_Distance(mp.geom, sr.geom) AS section_distance,
-
     mp.geom AS source_location,
-
-    ST_LocateAlong(
-        sr.geom,
-        mp.actual_route_mile
-    ) AS lrs_location,
-
-    ST_Distance(
-        mp.geom,
-        ST_LocateAlong(sr.geom, mp.actual_route_mile)
-    ) AS offset_distance
-
+    ST_LocateAlong(sr.geom, mp.actual_route_mile) AS lrs_location,
+    ST_Distance(mp.geom, ST_LocateAlong(sr.geom, mp.actual_route_mile)) AS offset_distance
 FROM ref.milepost_tenth_mile mp
-
 LEFT JOIN LATERAL (
     SELECT
         sr.route_identifier,
         sr.inventory_direction,
         sr.geom
-
     FROM ref.state_route_lrs sr
-
     WHERE sr.state_route_number = mp.route_id
       AND sr.inventory_direction = mp.direction
-
     ORDER BY ST_Distance(mp.geom, sr.geom)
-
     LIMIT 1
-
 ) sr ON TRUE
-
 WHERE mp.actual_route_mile IS NOT NULL;
+
 ALTER TABLE qa.sr_10thm_locations ADD PRIMARY KEY (objectid);
 CREATE INDEX sr_10thm_locations_geom_idx ON qa.sr_10thm_locations USING GIST (sr_lrs_geom);
 CREATE INDEX sr_10thm_locations2_geom_idx ON qa.sr_10thm_locations USING GIST (source_location);
 CREATE INDEX sr_10thm_locations3_geom_idx ON qa.sr_10thm_locations USING GIST (lrs_location);
 ANALYZE qa.sr_10thm_locations;
 
--- LRS located bridges and tunnels along SR
-CREATE MATERIALIZED VIEW qa.sr_bridge_tunnel_evw AS
 
+-- ============================================================
+-- 02. BRIDGE & TUNNEL LRS / ARM QA MATERIALIZED VIEWS
+-- ============================================================
+
+-- State Route bridges and tunnels
+CREATE MATERIALIZED VIEW qa.sr_bridge_tunnel_evw AS
 SELECT
     b.objectid,
     b.lrsrouteid,
     b.lrsmilepost AS reported_milepost,
     b.lrsarm AS reported_arm,
-
     matched.route_identifier,
     matched.inventory_direction,
     matched.related_route_type,
     matched.related_route_qualifier,
-
     matched.derived_arm,
     matched.distance_to_route,
-
-    matched.derived_arm - b.lrsarm
-        AS arm_difference_miles,
-
-    ABS(matched.derived_arm - b.lrsarm) * 5280
-        AS arm_difference_feet,
-
+    matched.derived_arm - b.lrsarm AS arm_difference_miles,
+    ABS(matched.derived_arm - b.lrsarm) * 5280 AS arm_difference_feet,
     CASE
-        WHEN b.geom IS NULL
-            THEN 'Missing source geometry'
-
-        WHEN matched.route_identifier IS NULL
-            THEN 'No State Route match'
-
-        WHEN matched.derived_arm IS NULL
-            THEN 'Matched - no derived ARM'
-
-        WHEN b.lrsarm IS NULL
-            THEN 'Matched - no reported ARM'
-
-        WHEN ABS(matched.derived_arm - b.lrsarm) <= 0.01
-            THEN 'ARM agreement within 0.01 mi'
-
+        WHEN b.geom IS NULL THEN 'Missing source geometry'
+        WHEN matched.route_identifier IS NULL THEN 'No State Route match'
+        WHEN matched.derived_arm IS NULL THEN 'Matched - no derived ARM'
+        WHEN b.lrsarm IS NULL THEN 'Matched - no reported ARM'
+        WHEN ABS(matched.derived_arm - b.lrsarm) <= 0.01 THEN 'ARM agreement within 0.01 mi'
         ELSE 'ARM discrepancy'
     END AS arm_qa_status
-
 FROM ref.all_bridge_tunnel b
-
 LEFT JOIN LATERAL (
-
     SELECT
         sr.route_identifier,
         sr.inventory_direction,
         sr.related_route_type,
         sr.related_route_qualifier,
-
-        ST_InterpolatePoint(
-            d.geom,
-            b.geom
-        ) AS derived_arm,
-
-        ST_Distance(
-            b.geom,
-            d.geom
-        ) AS distance_to_route
-
+        ST_InterpolatePoint(d.geom, b.geom) AS derived_arm,
+        ST_Distance(b.geom, d.geom) AS distance_to_route
     FROM ref.state_route_lrs sr
-
     CROSS JOIN LATERAL ST_Dump(sr.geom) AS d
-
-    WHERE UPPER(
-        REGEXP_REPLACE(
-            sr.route_identifier,
-            '[id]$',
-            '',
-            'i'
-        )
-    ) = UPPER(NULLIF(BTRIM(b.lrsrouteid), ''))
-
-      AND b.geom IS NOT NULL
-
-    ORDER BY
-        ST_Distance(b.geom, d.geom)
-
+    WHERE b.geom IS NOT NULL
+      AND UPPER(REGEXP_REPLACE(sr.route_identifier, '[id]$', '', 'i'))
+          = UPPER(NULLIF(BTRIM(b.lrsrouteid), ''))
+    ORDER BY ST_Distance(b.geom, d.geom)
     LIMIT 1
-
 ) AS matched ON TRUE;
 
-CREATE INDEX idx_sr_bridge_prl_objectid
-ON qa.sr_bridge_tunnel_evw(objectid);
-
-CREATE INDEX idx_sr_bridge_prl_status
-ON qa.sr_bridge_tunnel_evw (arm_qa_status);
-
-CREATE INDEX idx_sr_bridge_prl_route
-ON qa.sr_bridge_tunnel_evw (route_identifier);
-
+CREATE INDEX idx_sr_bridge_prl_objectid ON qa.sr_bridge_tunnel_evw (objectid);
+CREATE INDEX idx_sr_bridge_prl_status ON qa.sr_bridge_tunnel_evw (arm_qa_status);
+CREATE INDEX idx_sr_bridge_prl_route ON qa.sr_bridge_tunnel_evw (route_identifier);
 ANALYZE qa.sr_bridge_tunnel_evw;
 
--- Local Public Roads LRS bridges & tunnels
+-- Local Public Roads LRS bridges and tunnels (unmatched on State Routes)
 CREATE MATERIALIZED VIEW qa.bt_pub_rd_evw AS
-
 SELECT
     b.objectid,
     b.lrsrouteid,
     b.lrsmilepost AS reported_milepost,
     b.lrsarm AS reported_arm,
-
     matched.route_identifier,
     matched.inventory_direction,
     matched.related_route_type,
     matched.related_route_qualifier,
-
     matched.derived_arm,
     matched.distance_to_route,
-
-    matched.derived_arm - b.lrsarm
-        AS arm_difference_miles,
-
-    ABS(matched.derived_arm - b.lrsarm) * 5280
-        AS arm_difference_feet,
-
+    matched.derived_arm - b.lrsarm AS arm_difference_miles,
+    ABS(matched.derived_arm - b.lrsarm) * 5280 AS arm_difference_feet,
     CASE
-        WHEN b.geom IS NULL
-            THEN 'Missing source geometry'
-
-        WHEN NULLIF(BTRIM(b.lrsrouteid), '') IS NULL
-            THEN 'Missing route identifier'
-
-        WHEN matched.route_identifier IS NULL
-            THEN 'No prl match'
-
-        WHEN matched.derived_arm IS NULL
-            THEN 'Matched - no derived ARM'
-
-        WHEN b.lrsarm IS NULL
-            THEN 'Matched - no reported ARM'
-
-        WHEN ABS(matched.derived_arm - b.lrsarm) <= 0.01
-            THEN 'ARM agreement within 0.01 mi'
-
+        WHEN b.geom IS NULL THEN 'Missing source geometry'
+        WHEN NULLIF(BTRIM(b.lrsrouteid), '') IS NULL THEN 'Missing route identifier'
+        WHEN matched.route_identifier IS NULL THEN 'No prl match'
+        WHEN matched.derived_arm IS NULL THEN 'Matched - no derived ARM'
+        WHEN b.lrsarm IS NULL THEN 'Matched - no reported ARM'
+        WHEN ABS(matched.derived_arm - b.lrsarm) <= 0.01 THEN 'ARM agreement within 0.01 mi'
         ELSE 'ARM discrepancy'
     END AS arm_qa_status
-
 FROM ref.all_bridge_tunnel b
-
 JOIN qa.sr_bridge_tunnel_evw srqa
     ON srqa.objectid = b.objectid
-    AND srqa.route_identifier IS NULL
-
+   AND srqa.route_identifier IS NULL
 LEFT JOIN LATERAL (
-
     SELECT
         prl.route_identifier,
-
         CASE
             WHEN RIGHT(LOWER(prl.route_identifier), 1) IN ('i', 'd')
                 THEN RIGHT(LOWER(prl.route_identifier), 1)
             ELSE NULL
         END AS inventory_direction,
-
         NULL::text AS related_route_type,
         NULL::text AS related_route_qualifier,
-
-        ST_InterpolatePoint(
-            d.geom,
-            b.geom
-        ) AS derived_arm,
-
-        ST_Distance(
-            b.geom,
-            d.geom
-        ) AS distance_to_route
-
+        ST_InterpolatePoint(d.geom, b.geom) AS derived_arm,
+        ST_Distance(b.geom, d.geom) AS distance_to_route
     FROM ref.public_roads_lrs prl
-
     CROSS JOIN LATERAL ST_Dump(prl.geom) AS d
-
     WHERE b.geom IS NOT NULL
-
       AND (
-          UPPER(prl.route_identifier) =
-              UPPER(NULLIF(BTRIM(b.lrsrouteid), ''))
-
-          OR
-
-          UPPER(
-              REGEXP_REPLACE(
-                  prl.route_identifier,
-                  '[id]$',
-                  '',
-                  'i'
-              )
-          ) = UPPER(NULLIF(BTRIM(b.lrsrouteid), ''))
+          UPPER(prl.route_identifier) = UPPER(NULLIF(BTRIM(b.lrsrouteid), ''))
+          OR UPPER(REGEXP_REPLACE(prl.route_identifier, '[id]$', '', 'i'))
+             = UPPER(NULLIF(BTRIM(b.lrsrouteid), ''))
       )
-
     ORDER BY
         CASE
-            WHEN UPPER(prl.route_identifier) =
-                 UPPER(NULLIF(BTRIM(b.lrsrouteid), ''))
+            WHEN UPPER(prl.route_identifier) = UPPER(NULLIF(BTRIM(b.lrsrouteid), ''))
                 THEN 0
             ELSE 1
         END,
-
         ST_Distance(b.geom, d.geom)
-
     LIMIT 1
-
 ) AS matched ON TRUE;
 
-CREATE INDEX idx_mv_bridge_prl_objectid
-ON qa.bt_pub_rd_evw (objectid);
-
-CREATE INDEX idx_mv_bridge_prl_status
-ON qa.bt_pub_rd_evw (arm_qa_status);
-
-CREATE INDEX idx_mv_bridge_prl_route
-ON qa.bt_pub_rd_evw (route_identifier);
-
+CREATE INDEX idx_mv_bridge_prl_objectid ON qa.bt_pub_rd_evw (objectid);
+CREATE INDEX idx_mv_bridge_prl_status ON qa.bt_pub_rd_evw (arm_qa_status);
+CREATE INDEX idx_mv_bridge_prl_route ON qa.bt_pub_rd_evw (route_identifier);
 ANALYZE qa.bt_pub_rd_evw;
 
--- Crab Routes Bridges and Tunnels
+-- CRAB routes bridges and tunnels (unmatched on State Routes and Public Roads LRS)
 CREATE MATERIALIZED VIEW qa.bt_crab_evw AS
 SELECT
     b.objectid,
     b.lrsrouteid,
     b.lrsmilepost AS reported_milepost,
     b.lrsarm AS reported_arm,
-
     matched.route_identifier,
     matched.inventory_direction,
     matched.related_route_type,
     matched.related_route_qualifier,
-
     matched.derived_arm,
     matched.distance_to_route,
-
-    matched.derived_arm - b.lrsarm
-        AS arm_difference_miles,
-
-    ABS(matched.derived_arm - b.lrsarm) * 5280
-        AS arm_difference_feet,
-
+    matched.derived_arm - b.lrsarm AS arm_difference_miles,
+    ABS(matched.derived_arm - b.lrsarm) * 5280 AS arm_difference_feet,
     CASE
-        WHEN b.geom IS NULL
-            THEN 'Missing source geometry'
-
-        WHEN NULLIF(BTRIM(b.lrsrouteid), '') IS NULL
-            THEN 'Missing route identifier'
-
-        WHEN matched.route_identifier IS NULL
-            THEN 'No CRAB match'
-
-        WHEN matched.derived_arm IS NULL
-            THEN 'Matched - no derived ARM'
-
-        WHEN b.lrsarm IS NULL
-            THEN 'Matched - no reported ARM'
-
-        WHEN ABS(matched.derived_arm - b.lrsarm) <= 0.01
-            THEN 'ARM agreement within 0.01 mi'
-
+        WHEN b.geom IS NULL THEN 'Missing source geometry'
+        WHEN NULLIF(BTRIM(b.lrsrouteid), '') IS NULL THEN 'Missing route identifier'
+        WHEN matched.route_identifier IS NULL THEN 'No CRAB match'
+        WHEN matched.derived_arm IS NULL THEN 'Matched - no derived ARM'
+        WHEN b.lrsarm IS NULL THEN 'Matched - no reported ARM'
+        WHEN ABS(matched.derived_arm - b.lrsarm) <= 0.01 THEN 'ARM agreement within 0.01 mi'
         ELSE 'ARM discrepancy'
     END AS arm_qa_status
-
 FROM ref.all_bridge_tunnel b
-
 JOIN qa.bt_pub_rd_evw prqa
     ON prqa.objectid = b.objectid
-    AND prqa.route_identifier IS NULL
-
+   AND prqa.route_identifier IS NULL
 LEFT JOIN LATERAL (
-
     SELECT
         crab.route_identifier,
-
         CASE
             WHEN RIGHT(LOWER(crab.route_identifier), 1) IN ('i', 'd')
                 THEN RIGHT(LOWER(crab.route_identifier), 1)
             ELSE NULL
         END AS inventory_direction,
-
         NULL::text AS related_route_type,
         NULL::text AS related_route_qualifier,
-
-        ST_InterpolatePoint(
-            d.geom,
-            b.geom
-        ) AS derived_arm,
-
-        ST_Distance(
-            b.geom,
-            d.geom
-        ) AS distance_to_route
-
+        ST_InterpolatePoint(d.geom, b.geom) AS derived_arm,
+        ST_Distance(b.geom, d.geom) AS distance_to_route
     FROM ref.crab_routes crab
-
     CROSS JOIN LATERAL ST_Dump(crab.geom) AS d
-
     WHERE b.geom IS NOT NULL
-
       AND (
-          UPPER(crab.route_identifier) =
-              UPPER(NULLIF(BTRIM(b.lrsrouteid), ''))
-
-          OR
-
-          UPPER(
-              REGEXP_REPLACE(
-                  crab.route_identifier,
-                  '[id]$',
-                  '',
-                  'i'
-              )
-          ) = UPPER(NULLIF(BTRIM(b.lrsrouteid), ''))
+          UPPER(crab.route_identifier) = UPPER(NULLIF(BTRIM(b.lrsrouteid), ''))
+          OR UPPER(REGEXP_REPLACE(crab.route_identifier, '[id]$', '', 'i'))
+             = UPPER(NULLIF(BTRIM(b.lrsrouteid), ''))
       )
-
     ORDER BY
         CASE
-            WHEN UPPER(crab.route_identifier) =
-                 UPPER(NULLIF(BTRIM(b.lrsrouteid), ''))
+            WHEN UPPER(crab.route_identifier) = UPPER(NULLIF(BTRIM(b.lrsrouteid), ''))
                 THEN 0
             ELSE 1
         END,
-
         ST_Distance(b.geom, d.geom)
-
     LIMIT 1
-
 ) AS matched ON TRUE;
 
-CREATE INDEX idx_crab_bridge_prl_objectid
-ON qa.bt_crab_evw (objectid);
-
-CREATE INDEX idx_crab_bridge_prl_status
-ON qa.bt_crab_evw (arm_qa_status);
-
-CREATE INDEX idx_crab_bridge_prl_route
-ON qa.bt_crab_evw (route_identifier);
-
+CREATE INDEX idx_crab_bridge_prl_objectid ON qa.bt_crab_evw (objectid);
+CREATE INDEX idx_crab_bridge_prl_status ON qa.bt_crab_evw (arm_qa_status);
+CREATE INDEX idx_crab_bridge_prl_route ON qa.bt_crab_evw (route_identifier);
 ANALYZE qa.bt_crab_evw;
 
--- SR bridges and Tunnels with > 0.01 mile descrepancy
-CREATE OR REPLACE VIEW qa.bt_arm_discrepancy AS
+
+-- ============================================================
+-- 03. BRIDGE & TUNNEL QA / SENSITIVITY VIEWS
+-- ============================================================
+
+CREATE VIEW qa.bt_arm_discrepancy AS
 SELECT
     br.*,
     srbr.derived_arm,
     srbr.distance_to_route,
     ROUND(srbr.arm_difference_feet::numeric, 3) AS diff_feet,
-	srbr.arm_qa_status
+    srbr.arm_qa_status
 FROM qa.sr_bridge_tunnel_evw srbr
 JOIN ref.all_bridge_tunnel br
     ON br.objectid = srbr.objectid;
 
--- Public Roads Bridges View
-CREATE OR REPLACE VIEW qa.bt_pub AS
-SELECT br.*, pub.derived_arm, pub.distance_to_route, ROUND(pub.arm_difference_feet::numeric, 3) AS diff_feet, pub.arm_qa_status
+CREATE VIEW qa.bt_pub AS
+SELECT
+    br.*,
+    pub.derived_arm,
+    pub.distance_to_route,
+    ROUND(pub.arm_difference_feet::numeric, 3) AS diff_feet,
+    pub.arm_qa_status
 FROM qa.bt_pub_rd_evw pub
 JOIN ref.all_bridge_tunnel br
-ON br.objectid = pub.objectid;
+    ON br.objectid = pub.objectid;
 
--- Bridge & Tunnel Base for Distance Sensitivity
-CREATE OR REPLACE VIEW qa.vw_bt_arm AS
-
+CREATE VIEW qa.vw_bt_arm AS
 SELECT
     br.*,
     qa.route_identifier,
@@ -602,1118 +387,485 @@ SELECT
     qa.distance_to_route,
     qa.arm_difference_miles,
     qa.arm_difference_feet
-
 FROM qa.sr_bridge_tunnel_evw qa
-
 JOIN ref.all_bridge_tunnel br
     ON br.objectid = qa.objectid
-
 WHERE qa.route_identifier IS NOT NULL
   AND qa.reported_arm IS NOT NULL
   AND qa.derived_arm IS NOT NULL;
 
--- Layer demonstrating accumulated miles discrepancy
--- between lrs measurement and wsdot calculation
-CREATE OR REPLACE VIEW qa.vw_bt_arm_sensitivity AS
-
+CREATE VIEW qa.vw_bt_arm_sensitivity AS
 SELECT
     *,
     ABS(arm_difference_miles) AS absolute_arm_difference,
-
     CASE
-        WHEN ABS(arm_difference_miles) <= 0.01
-            THEN 'Within 0.01 mi'
-
-        WHEN ABS(arm_difference_miles) <= 0.05
-            THEN '0.01–0.05 mi'
-
-        WHEN ABS(arm_difference_miles) <= 0.10
-            THEN '0.05–0.10 mi'
-
+        WHEN ABS(arm_difference_miles) <= 0.01 THEN 'Within 0.01 mi'
+        WHEN ABS(arm_difference_miles) <= 0.05 THEN '0.01–0.05 mi'
+        WHEN ABS(arm_difference_miles) <= 0.10 THEN '0.05–0.10 mi'
         ELSE 'Greater than 0.10 mi'
     END AS discrepancy_band
 FROM qa.vw_bt_arm;
 
--- Dig Once for Broadband Projects
-CREATE OR REPLACE VIEW analysis.dig_once AS
+
+-- ============================================================
+-- 04. DIG ONCE BROADBAND PROJECTS & STATE ROUTE LRS RECONSTRUCTION
+-- ============================================================
+
+CREATE VIEW analysis.dig_once AS
 SELECT *
 FROM ref.current_projects
 WHERE to_timestamp(AdDate) > '2025-01-01 07:59:59'::TIMESTAMP
-AND ProgramCode IN ('I', 'P', 'Q');
-
--- Create dig once projects and compare to location measure
--- off state route lrs calculations
-
--- ============================================================
--- WSDOT DIG ONCE PROJECTS
--- State Route LRS reconstruction and QA
---
--- Input:
---   analysis.dig_once
---   ref.state_route_lrs
---
--- Outputs:
---   analysis.dig_once_lrs_candidates
---   analysis.dig_once_lrs
---   qa.dig_once_lrs_review
---
--- CRS:
---   EPSG:2927 (Washington South, US survey feet)
---
--- PostGIS:
---   Compatible with PostGIS 3.6
---
--- Direction handling:
---   I = Increasing
---   D = Decreasing
---   B = Both directions
---
--- QA tolerances:
---   1 ft  = strong geometric agreement
---   10 ft = close geometric agreement
---   These are exploratory project QA thresholds,
---   not published WSDOT accuracy standards.
--- ============================================================
-
-
--- ============================================================
--- 00. REBUILD OUTPUT VIEWS
--- ============================================================
-
-CREATE SCHEMA IF NOT EXISTS analysis;
-CREATE SCHEMA IF NOT EXISTS qa;
-
--- Drop dependent views first.
--- No CASCADE: preserve unrelated dependent objects.
-
-DROP VIEW IF EXISTS qa.dig_once_lrs_review;
-
-DROP MATERIALIZED VIEW IF EXISTS analysis.dig_once_lrs;
-
-DROP VIEW IF EXISTS analysis.dig_once_lrs_candidates;
-
-
--- ============================================================
--- 01. DIRECTIONAL LRS CANDIDATES
---
--- One project can produce:
---   I: one increasing route candidate
---   D: one decreasing route candidate
---   B: both directional route candidates
---
--- Missing/unrecognized project directions are retained
--- for manual review rather than discarded.
---
--- LEFT JOIN preserves projects without route matches.
--- ============================================================
+  AND ProgramCode IN ('I', 'P', 'Q');
 
 CREATE VIEW analysis.dig_once_lrs_candidates AS
-
-WITH route_matches AS (
-
+WITH route_measure_bounds AS (
     SELECT
-        p.objectid,
-        p.projectnumber,
-        p.projecttitle,
-
-        BTRIM(p.routeidentifier) AS project_route_identifier,
-
-        p.stateroutenumber,
-
-        p.relatedroutetype
-            AS project_related_route_type,
-
-        p.relatedroutequalifier
-            AS project_related_route_qualifier,
-
-        p.inventorydirection
-            AS project_direction,
-
+        sr.objectid AS sr_objectid,
         sr.route_identifier,
         sr.state_route_number,
         sr.related_route_type,
         sr.related_route_qualifier,
-
-        sr.inventory_direction
-            AS lrs_direction,
-
+        sr.inventory_direction,
+        sr.geom,
+        MIN(ST_M((dp).geom)) AS route_min_m,
+        MAX(ST_M((dp).geom)) AS route_max_m
+    FROM ref.state_route_lrs sr
+    LEFT JOIN LATERAL ST_DumpPoints(sr.geom) AS dp ON TRUE
+    GROUP BY
+        sr.objectid,
+        sr.route_identifier,
+        sr.state_route_number,
+        sr.related_route_type,
+        sr.related_route_qualifier,
+        sr.inventory_direction,
+        sr.geom
+),
+route_matches AS (
+    SELECT
+        p.objectid,
+        p.projectnumber,
+        p.projecttitle,
+        BTRIM(p.routeidentifier) AS project_route_identifier,
+        p.stateroutenumber,
+        p.relatedroutetype AS project_related_route_type,
+        p.relatedroutequalifier AS project_related_route_qualifier,
+        p.inventorydirection AS project_direction,
+        sr.route_identifier,
+        sr.state_route_number,
+        sr.related_route_type,
+        sr.related_route_qualifier,
+        sr.inventory_direction AS lrs_direction,
         p.beginaccumulatedroutemile,
         p.endaccumulatedroutemile,
-
         p.beginstateroutemilepost,
         p.endstateroutemilepost,
-
         p.geom AS source_project_geom,
-
         sr.geom AS reference_route_geom,
-
-        -- Overall route measure range.
-        (
-            SELECT MIN(ST_M((dp).geom))
-            FROM ST_DumpPoints(sr.geom) AS dp
-        ) AS route_min_m,
-
-        (
-            SELECT MAX(ST_M((dp).geom))
-            FROM ST_DumpPoints(sr.geom) AS dp
-        ) AS route_max_m,
-
-        -- Original project-to-full-route distance.
-        ST_Distance(
-            ST_Force2D(p.geom),
-            ST_Force2D(sr.geom)
-        ) AS project_to_route_distance_ft,
-
-        -- Interpret project direction.
+        sr.route_min_m,
+        sr.route_max_m,
+        ST_Distance(ST_Force2D(p.geom), ST_Force2D(sr.geom)) AS project_to_route_distance_ft,
         CASE
-
             WHEN UPPER(BTRIM(p.inventorydirection)) = 'B'
                 THEN 'Both directions - inspect candidates'
-
             WHEN UPPER(BTRIM(p.inventorydirection)) = 'I'
                  AND LOWER(BTRIM(sr.inventory_direction)) = 'i'
                 THEN 'Direction agrees'
-
             WHEN UPPER(BTRIM(p.inventorydirection)) = 'D'
                  AND LOWER(BTRIM(sr.inventory_direction)) = 'd'
                 THEN 'Direction agrees'
-
             WHEN NULLIF(BTRIM(p.inventorydirection), '') IS NULL
                 THEN 'Missing project direction - inspect candidates'
-
-            WHEN UPPER(BTRIM(p.inventorydirection))
-                 NOT IN ('B', 'I', 'D')
+            WHEN UPPER(BTRIM(p.inventorydirection)) NOT IN ('B', 'I', 'D')
                 THEN 'Unrecognized project direction - inspect candidates'
-
             ELSE 'Direction differs'
-
         END AS direction_check
-
     FROM analysis.dig_once p
-
-    LEFT JOIN ref.state_route_lrs sr
-
-        ON BTRIM(sr.state_route_number::text)
-           = BTRIM(p.stateroutenumber::text)
-
-        AND COALESCE(
-            UPPER(BTRIM(sr.related_route_type)),
-            ''
-        ) = COALESCE(
-            UPPER(BTRIM(p.relatedroutetype)),
-            ''
-        )
-
-        AND COALESCE(
-            UPPER(BTRIM(sr.related_route_qualifier)),
-            ''
-        ) = COALESCE(
-            UPPER(BTRIM(p.relatedroutequalifier)),
-            ''
-        )
-
-        -- Direction-aware matching.
-        AND (
-
-            -- Both directions: retain both route candidates.
-            UPPER(BTRIM(p.inventorydirection)) = 'B'
-
-            -- Increasing projects: increasing LRS only.
-            OR (
-                UPPER(BTRIM(p.inventorydirection)) = 'I'
-                AND LOWER(BTRIM(sr.inventory_direction)) = 'i'
-            )
-
-            -- Decreasing projects: decreasing LRS only.
-            OR (
-                UPPER(BTRIM(p.inventorydirection)) = 'D'
-                AND LOWER(BTRIM(sr.inventory_direction)) = 'd'
-            )
-
-            -- Keep missing/unrecognized values for review.
-            OR COALESCE(
-                UPPER(NULLIF(BTRIM(p.inventorydirection), '')),
-                ''
-            ) NOT IN ('B', 'I', 'D')
-
-        )
+    LEFT JOIN route_measure_bounds sr
+        ON BTRIM(sr.state_route_number::text) = BTRIM(p.stateroutenumber::text)
+       AND COALESCE(UPPER(BTRIM(sr.related_route_type)), '') = COALESCE(UPPER(BTRIM(p.relatedroutetype)), '')
+       AND COALESCE(UPPER(BTRIM(sr.related_route_qualifier)), '') = COALESCE(UPPER(BTRIM(p.relatedroutequalifier)), '')
+       AND (
+           UPPER(BTRIM(p.inventorydirection)) = 'B'
+           OR (UPPER(BTRIM(p.inventorydirection)) = 'I' AND LOWER(BTRIM(sr.inventory_direction)) = 'i')
+           OR (UPPER(BTRIM(p.inventorydirection)) = 'D' AND LOWER(BTRIM(sr.inventory_direction)) = 'd')
+           OR COALESCE(UPPER(NULLIF(BTRIM(p.inventorydirection), '')), '') NOT IN ('B', 'I', 'D')
+       )
 ),
-
--- ============================================================
--- 02. RECONSTRUCT PROJECT SEGMENTS
--- ============================================================
-
 segments AS (
-
     SELECT
         *,
-
         CASE
-
             WHEN reference_route_geom IS NOT NULL
                  AND beginaccumulatedroutemile IS NOT NULL
                  AND endaccumulatedroutemile IS NOT NULL
-
-            THEN ST_LocateBetween(
-                reference_route_geom,
-
-                LEAST(
-                    beginaccumulatedroutemile,
-                    endaccumulatedroutemile
-                ),
-
-                GREATEST(
-                    beginaccumulatedroutemile,
-                    endaccumulatedroutemile
+                THEN ST_LocateBetween(
+                    reference_route_geom,
+                    LEAST(beginaccumulatedroutemile, endaccumulatedroutemile),
+                    GREATEST(beginaccumulatedroutemile, endaccumulatedroutemile)
                 )
-            )
-
             ELSE NULL
-
         END AS lrs_segment
-
     FROM route_matches
 ),
-
--- ============================================================
--- 03. CANDIDATE GEOMETRY METRICS
--- ============================================================
-
 metrics AS (
-
     SELECT
         *,
-
-        ST_Length(
-            ST_Force2D(source_project_geom)
-        ) AS source_length_ft,
-
+        ST_Length(ST_Force2D(source_project_geom)) AS source_length_ft,
         CASE
-            WHEN lrs_segment IS NOT NULL
-                 AND NOT ST_IsEmpty(lrs_segment)
-
-            THEN ST_Length(
-                ST_Force2D(lrs_segment)
-            )
-
+            WHEN lrs_segment IS NOT NULL AND NOT ST_IsEmpty(lrs_segment)
+                THEN ST_Length(ST_Force2D(lrs_segment))
             ELSE NULL
         END AS lrs_length_ft,
-
         CASE
             WHEN source_project_geom IS NOT NULL
                  AND lrs_segment IS NOT NULL
                  AND NOT ST_IsEmpty(lrs_segment)
-
-            THEN ST_Distance(
-                ST_Force2D(source_project_geom),
-                ST_Force2D(lrs_segment)
-            )
-
+                THEN ST_Distance(ST_Force2D(source_project_geom), ST_Force2D(lrs_segment))
             ELSE NULL
         END AS minimum_separation_ft,
-
         CASE
             WHEN source_project_geom IS NOT NULL
                  AND lrs_segment IS NOT NULL
                  AND NOT ST_IsEmpty(lrs_segment)
-
-            THEN ST_HausdorffDistance(
-                ST_Force2D(source_project_geom),
-                ST_Force2D(lrs_segment)
-            )
-
+                THEN ST_HausdorffDistance(ST_Force2D(source_project_geom), ST_Force2D(lrs_segment))
             ELSE NULL
         END AS hausdorff_distance_ft
-
     FROM segments
 ),
-
--- ============================================================
--- 04. CANDIDATE RECONSTRUCTION STATUS
--- ============================================================
-
 classified AS (
-
     SELECT
         *,
-
-        ABS(source_length_ft - lrs_length_ft)
-            AS length_difference_ft,
-
+        ABS(source_length_ft - lrs_length_ft) AS length_difference_ft,
         CASE
-
             WHEN route_identifier IS NULL
                 THEN 'No route match'
-
-            WHEN beginaccumulatedroutemile IS NULL
-                 OR endaccumulatedroutemile IS NULL
+            WHEN beginaccumulatedroutemile IS NULL OR endaccumulatedroutemile IS NULL
                 THEN 'Missing ARM values'
-
-            -- Small tolerance for floating-point precision.
-            -- 0.00000001 miles = approximately 0.000053 ft.
-
             WHEN route_min_m IS NOT NULL
                  AND route_max_m IS NOT NULL
                  AND (
-                     LEAST(
-                         beginaccumulatedroutemile,
-                         endaccumulatedroutemile
-                     ) < route_min_m - 0.00000001
-
-                     OR
-
-                     GREATEST(
-                         beginaccumulatedroutemile,
-                         endaccumulatedroutemile
-                     ) > route_max_m + 0.00000001
+                     LEAST(beginaccumulatedroutemile, endaccumulatedroutemile) < route_min_m - 0.00000001
+                     OR GREATEST(beginaccumulatedroutemile, endaccumulatedroutemile) > route_max_m + 0.00000001
                  )
-
                 THEN 'Outside route measure range'
-
-            -- Detect zero-length measure intervals explicitly.
-
-            WHEN ABS(
-                endaccumulatedroutemile
-                - beginaccumulatedroutemile
-            ) <= 0.0000000001
-
+            WHEN ABS(endaccumulatedroutemile - beginaccumulatedroutemile) <= 0.0000000001
                 THEN 'Zero-length measure interval'
-
-            WHEN lrs_segment IS NULL
-                 OR ST_IsEmpty(lrs_segment)
-
+            WHEN lrs_segment IS NULL OR ST_IsEmpty(lrs_segment)
                 THEN 'No segment reconstructed'
-
             WHEN lrs_length_ft <= 0.000001
-
                 THEN 'Zero-length measure interval'
-
             ELSE 'Segment reconstructed'
-
         END AS lrs_status
-
     FROM metrics
 )
-
 SELECT
     objectid,
     projectnumber,
     projecttitle,
-
     project_route_identifier,
     stateroutenumber,
-
     project_related_route_type,
     project_related_route_qualifier,
     project_direction,
-
     route_identifier,
     state_route_number,
     related_route_type,
     related_route_qualifier,
     lrs_direction,
-
     beginaccumulatedroutemile,
     endaccumulatedroutemile,
-
     beginstateroutemilepost,
     endstateroutemilepost,
-
     route_min_m,
     route_max_m,
-
     source_project_geom,
     lrs_segment,
-
     project_to_route_distance_ft,
     direction_check,
-
     source_length_ft,
     lrs_length_ft,
-
     minimum_separation_ft,
     hausdorff_distance_ft,
     length_difference_ft,
-
     lrs_status
-
 FROM classified;
 
-
--- ============================================================
--- 05. AGGREGATE DIRECTIONAL CANDIDATES BY PROJECT
---
--- For B projects:
---   Collect valid i and d segments.
---   Force to 2D for spatial comparison.
---   ST_UnaryUnion dissolves coincident linework.
---
--- For I/D projects:
---   Only the directionally appropriate candidate
---   is included.
---
--- Invalid/out-of-range segments are excluded from
--- the reconstructed project geometry but counted
--- for QA.
--- ============================================================
-
 CREATE MATERIALIZED VIEW analysis.dig_once_lrs AS
-
 WITH candidate_summary AS (
-
     SELECT
         objectid,
-
-        COUNT(route_identifier)
-            AS route_candidate_count,
-
-        COUNT(*) FILTER (
-            WHERE lrs_status = 'Segment reconstructed'
-        ) AS reconstructed_candidate_count,
-
+        COUNT(route_identifier) AS route_candidate_count,
+        COUNT(*) FILTER (WHERE lrs_status = 'Segment reconstructed') AS reconstructed_candidate_count,
         COUNT(*) FILTER (
             WHERE route_identifier IS NOT NULL
               AND lrs_status <> 'Segment reconstructed'
         ) AS candidate_exception_count,
-
-        COUNT(*) FILTER (
-            WHERE lrs_status = 'Outside route measure range'
-        ) AS outside_measure_range_count,
-
-        COUNT(*) FILTER (
-            WHERE lrs_status = 'Zero-length measure interval'
-        ) AS zero_length_interval_count,
-
-        -- Direction availability.
+        COUNT(*) FILTER (WHERE lrs_status = 'Outside route measure range') AS outside_measure_range_count,
+        COUNT(*) FILTER (WHERE lrs_status = 'Zero-length measure interval') AS zero_length_interval_count,
         COALESCE(
-            BOOL_OR(
-                LOWER(BTRIM(lrs_direction)) = 'i'
-            ) FILTER (
-                WHERE route_identifier IS NOT NULL
-            ),
+            BOOL_OR(LOWER(BTRIM(lrs_direction)) = 'i') FILTER (WHERE route_identifier IS NOT NULL),
             FALSE
         ) AS has_i_candidate,
-
         COALESCE(
-            BOOL_OR(
-                LOWER(BTRIM(lrs_direction)) = 'd'
-            ) FILTER (
-                WHERE route_identifier IS NOT NULL
-            ),
+            BOOL_OR(LOWER(BTRIM(lrs_direction)) = 'd') FILTER (WHERE route_identifier IS NOT NULL),
             FALSE
         ) AS has_d_candidate,
-
-        -- Retain matched route identifiers.
-        ARRAY_AGG(
-            DISTINCT route_identifier
-            ORDER BY route_identifier
-        ) FILTER (
-            WHERE route_identifier IS NOT NULL
-        ) AS matched_route_identifiers,
-
-        ARRAY_AGG(
-            DISTINCT lrs_direction
-            ORDER BY lrs_direction
-        ) FILTER (
-            WHERE route_identifier IS NOT NULL
-        ) AS matched_lrs_directions,
-
-        ARRAY_AGG(
-            DISTINCT lrs_status
-            ORDER BY lrs_status
-        ) FILTER (
-            WHERE route_identifier IS NOT NULL
-        ) AS candidate_lrs_statuses,
-
-        -- Combine successfully reconstructed segments.
-        -- Coincident i/d geometry is dissolved.
+        ARRAY_AGG(DISTINCT route_identifier ORDER BY route_identifier)
+            FILTER (WHERE route_identifier IS NOT NULL) AS matched_route_identifiers,
+        ARRAY_AGG(DISTINCT lrs_direction ORDER BY lrs_direction)
+            FILTER (WHERE route_identifier IS NOT NULL) AS matched_lrs_directions,
+        ARRAY_AGG(DISTINCT lrs_status ORDER BY lrs_status)
+            FILTER (WHERE route_identifier IS NOT NULL) AS candidate_lrs_statuses,
         ST_UnaryUnion(
-
-            ST_Collect(
-                ST_Force2D(lrs_segment)
-            ) FILTER (
+            ST_Collect(ST_Force2D(lrs_segment)) FILTER (
                 WHERE lrs_status = 'Segment reconstructed'
                   AND lrs_segment IS NOT NULL
                   AND NOT ST_IsEmpty(lrs_segment)
             )
-
         ) AS combined_lrs_segment
-
     FROM analysis.dig_once_lrs_candidates
-
     GROUP BY objectid
 ),
-
--- ============================================================
--- 06. JOIN PROJECT-LEVEL RESULTS TO ORIGINAL PROJECTS
--- ============================================================
-
 project_metrics AS (
-
     SELECT
         p.objectid,
         p.projectnumber,
         p.projecttitle,
-
-        BTRIM(p.routeidentifier)
-            AS project_route_identifier,
-
+        BTRIM(p.routeidentifier) AS project_route_identifier,
         p.stateroutenumber,
-
-        p.relatedroutetype
-            AS project_related_route_type,
-
-        p.relatedroutequalifier
-            AS project_related_route_qualifier,
-
-        p.inventorydirection
-            AS project_direction,
-
+        p.relatedroutetype AS project_related_route_type,
+        p.relatedroutequalifier AS project_related_route_qualifier,
+        p.inventorydirection AS project_direction,
         p.beginaccumulatedroutemile,
         p.endaccumulatedroutemile,
-
         p.beginstateroutemilepost,
         p.endstateroutemilepost,
-
         p.geom AS source_project_geom,
-
-        -- Candidate counts.
-        COALESCE(
-            c.route_candidate_count,
-            0
-        ) AS route_candidate_count,
-
-        COALESCE(
-            c.reconstructed_candidate_count,
-            0
-        ) AS reconstructed_candidate_count,
-
-        COALESCE(
-            c.candidate_exception_count,
-            0
-        ) AS candidate_exception_count,
-
-        COALESCE(
-            c.outside_measure_range_count,
-            0
-        ) AS outside_measure_range_count,
-
-        COALESCE(
-            c.zero_length_interval_count,
-            0
-        ) AS zero_length_interval_count,
-
-        -- Direction availability.
-        COALESCE(
-            c.has_i_candidate,
-            FALSE
-        ) AS has_i_candidate,
-
-        COALESCE(
-            c.has_d_candidate,
-            FALSE
-        ) AS has_d_candidate,
-
+        COALESCE(c.route_candidate_count, 0) AS route_candidate_count,
+        COALESCE(c.reconstructed_candidate_count, 0) AS reconstructed_candidate_count,
+        COALESCE(c.candidate_exception_count, 0) AS candidate_exception_count,
+        COALESCE(c.outside_measure_range_count, 0) AS outside_measure_range_count,
+        COALESCE(c.zero_length_interval_count, 0) AS zero_length_interval_count,
+        COALESCE(c.has_i_candidate, FALSE) AS has_i_candidate,
+        COALESCE(c.has_d_candidate, FALSE) AS has_d_candidate,
         c.matched_route_identifiers,
         c.matched_lrs_directions,
         c.candidate_lrs_statuses,
-
-        -- Combined directional geometry.
         c.combined_lrs_segment,
-
-        -- Original and reconstructed lengths.
-        ST_Length(
-            ST_Force2D(p.geom)
-        ) AS source_length_ft,
-
+        ST_Length(ST_Force2D(p.geom)) AS source_length_ft,
         CASE
-            WHEN c.combined_lrs_segment IS NOT NULL
-                 AND NOT ST_IsEmpty(c.combined_lrs_segment)
-
-            THEN ST_Length(c.combined_lrs_segment)
-
+            WHEN c.combined_lrs_segment IS NOT NULL AND NOT ST_IsEmpty(c.combined_lrs_segment)
+                THEN ST_Length(c.combined_lrs_segment)
             ELSE NULL
         END AS reconstructed_length_ft,
-
-        -- Minimum separation.
         CASE
             WHEN p.geom IS NOT NULL
                  AND c.combined_lrs_segment IS NOT NULL
                  AND NOT ST_IsEmpty(c.combined_lrs_segment)
-
-            THEN ST_Distance(
-                ST_Force2D(p.geom),
-                c.combined_lrs_segment
-            )
-
+                THEN ST_Distance(ST_Force2D(p.geom), c.combined_lrs_segment)
             ELSE NULL
         END AS minimum_separation_ft,
-
-        -- Overall geometric agreement.
         CASE
             WHEN p.geom IS NOT NULL
                  AND c.combined_lrs_segment IS NOT NULL
                  AND NOT ST_IsEmpty(c.combined_lrs_segment)
-
-            THEN ST_HausdorffDistance(
-                ST_Force2D(p.geom),
-                c.combined_lrs_segment
-            )
-
+                THEN ST_HausdorffDistance(ST_Force2D(p.geom), c.combined_lrs_segment)
             ELSE NULL
         END AS hausdorff_distance_ft
-
     FROM analysis.dig_once p
-
     LEFT JOIN candidate_summary c
         ON p.objectid = c.objectid
 ),
-
--- ============================================================
--- 07. PROJECT-LEVEL RECONSTRUCTION STATUS
--- ============================================================
-
 project_status AS (
-
     SELECT
         *,
-
-        ABS(
-            source_length_ft - reconstructed_length_ft
-        ) AS length_difference_ft,
-
+        ABS(source_length_ft - reconstructed_length_ft) AS length_difference_ft,
         CASE
-
             WHEN route_candidate_count = 0
                 THEN 'No route match'
-
-            WHEN beginaccumulatedroutemile IS NULL
-                 OR endaccumulatedroutemile IS NULL
+            WHEN beginaccumulatedroutemile IS NULL OR endaccumulatedroutemile IS NULL
                 THEN 'Missing ARM values'
-
-            WHEN NULLIF(
-                UPPER(BTRIM(project_direction)),
-                ''
-            ) IS NULL
-                 OR UPPER(BTRIM(project_direction))
-                    NOT IN ('B', 'I', 'D')
-
+            WHEN NULLIF(UPPER(BTRIM(project_direction)), '') IS NULL
+                 OR UPPER(BTRIM(project_direction)) NOT IN ('B', 'I', 'D')
                 THEN 'Missing or unrecognized project direction'
-
-            WHEN reconstructed_candidate_count = 0
-                 AND outside_measure_range_count > 0
-
+            WHEN reconstructed_candidate_count = 0 AND outside_measure_range_count > 0
                 THEN 'Outside route measure range'
-
-            WHEN reconstructed_candidate_count = 0
-                 AND zero_length_interval_count > 0
-
+            WHEN reconstructed_candidate_count = 0 AND zero_length_interval_count > 0
                 THEN 'Zero-length measure interval'
-
             WHEN reconstructed_candidate_count = 0
                 THEN 'No segment reconstructed'
-
-            -- A B project should have both directional candidates.
             WHEN UPPER(BTRIM(project_direction)) = 'B'
-                 AND (
-                     NOT has_i_candidate
-                     OR NOT has_d_candidate
-                 )
-
+                 AND (NOT has_i_candidate OR NOT has_d_candidate)
                 THEN 'Incomplete bidirectional match'
-
-            -- At least one candidate failed while another succeeded.
             WHEN candidate_exception_count > 0
                 THEN 'Partial candidate exception'
-
             ELSE 'Segment reconstructed'
-
         END AS project_lrs_status
-
     FROM project_metrics
 ),
-
--- ============================================================
--- 08. GEOMETRIC QA CLASSIFICATION
---
--- These are screening categories, not formal
--- positional accuracy certifications.
--- ============================================================
-
 geometry_status AS (
-
     SELECT
         *,
-
         CASE
-
             WHEN source_project_geom IS NULL
                 THEN 'Missing source project geometry'
-
-            WHEN combined_lrs_segment IS NULL
-                OR ST_IsEmpty(combined_lrs_segment)
+            WHEN combined_lrs_segment IS NULL OR ST_IsEmpty(combined_lrs_segment)
                 THEN 'No reconstructed geometry'
-
-            WHEN length_difference_ft <= 1
-                 AND hausdorff_distance_ft <= 1
-
+            WHEN length_difference_ft <= 1 AND hausdorff_distance_ft <= 1
                 THEN 'Strong geometric agreement (<= 1 ft)'
-
-            WHEN length_difference_ft <= 10
-                 AND hausdorff_distance_ft <= 10
-
+            WHEN length_difference_ft <= 10 AND hausdorff_distance_ft <= 10
                 THEN 'Close geometric agreement (<= 10 ft)'
-
             ELSE 'Review geometry'
-
         END AS geometry_qa_status
-
     FROM project_status
 )
-
--- ============================================================
--- 09. FINAL PROJECT-LEVEL VIEW
--- ============================================================
-
 SELECT
     *,
-
     CASE
-
         WHEN project_lrs_status <> 'Segment reconstructed'
             THEN TRUE
-
         WHEN geometry_qa_status NOT IN (
             'Strong geometric agreement (<= 1 ft)',
             'Close geometric agreement (<= 10 ft)'
         )
             THEN TRUE
-
         ELSE FALSE
-
     END AS review_required
-
 FROM geometry_status;
 
-
--- ============================================================
--- 10. QA REVIEW VIEW
---
--- Contains projects requiring further investigation:
---   - Missing route matches
---   - Missing ARM values
---   - Out-of-range measures
---   - Zero-length intervals
---   - Incomplete bidirectional associations
---   - Partial candidate exceptions
---   - Missing or unrecognized directions
---   - Geometric discrepancies greater than 10 ft
--- ============================================================
+CREATE INDEX idx_dig_once_objectid ON analysis.dig_once_lrs (objectid);
+CREATE INDEX idx_do_project_number ON analysis.dig_once_lrs (projectnumber);
+CREATE INDEX idx_do_source_project_geom ON analysis.dig_once_lrs USING GIST (source_project_geom);
+CREATE INDEX idx_do_lrs_segment_geom ON analysis.dig_once_lrs USING GIST (combined_lrs_segment);
 
 CREATE VIEW qa.dig_once_lrs_review AS
-
 SELECT *
-
 FROM analysis.dig_once_lrs
-
 WHERE review_required;
 
-
--- ============================================================
--- END OF SCRIPT
--- ============================================================
-
-
-CREATE INDEX idx_dig_once_objectid
-ON analysis.dig_once_lrs(objectid);
-
-CREATE INDEX idx_do_project_number
-ON analysis.dig_once_lrs (projectnumber);
-
-CREATE INDEX idx_do_source_project_geom
-ON analysis.dig_once_lrs USING GIST (source_project_geom);
-
-CREATE INDEX idx_do_lrs_segment_geom
-ON analysis.dig_once_lrs USING GIST (combined_lrs_segment);
-
--- Summary view on missing dig_once projects from lrs
-CREATE OR REPLACE VIEW qa.dig_once_lrs_coverage_gaps AS
+CREATE VIEW qa.dig_once_lrs_coverage_gaps AS
 WITH unmatched AS (
-
     SELECT DISTINCT
         objectid,
         projectnumber,
         projecttitle,
-
-        BTRIM(stateroutenumber::text)
-            AS state_route_number_key,
-
-        NULLIF(
-            UPPER(BTRIM(project_related_route_type)),
-            ''
-        ) AS related_type_key,
-
-        NULLIF(
-            UPPER(BTRIM(project_related_route_qualifier)),
-            ''
-        ) AS related_qualifier_key,
-
-        UPPER(
-            NULLIF(BTRIM(project_direction), '')
-        ) AS project_direction_key
-
+        BTRIM(stateroutenumber::text) AS state_route_number_key,
+        NULLIF(UPPER(BTRIM(project_related_route_type)), '') AS related_type_key,
+        NULLIF(UPPER(BTRIM(project_related_route_qualifier)), '') AS related_qualifier_key,
+        UPPER(NULLIF(BTRIM(project_direction), '')) AS project_direction_key
     FROM analysis.dig_once_lrs_candidates
-
     WHERE lrs_status = 'No route match'
 ),
-
 unmatched_keys AS (
-
     SELECT
         state_route_number_key,
         related_type_key,
         related_qualifier_key,
         project_direction_key,
-
         COUNT(*) AS project_count,
-
-        ARRAY_AGG(
-            projectnumber
-            ORDER BY projectnumber
-        ) AS project_numbers
-
+        ARRAY_AGG(projectnumber ORDER BY projectnumber) AS project_numbers
     FROM unmatched
-
     GROUP BY
         state_route_number_key,
         related_type_key,
         related_qualifier_key,
         project_direction_key
 ),
-
 coverage AS (
-
     SELECT
         k.*,
-
-        -- ================================================
-        -- STAGING REFERENCE COVERAGE
-        -- ================================================
-
         s.route_number_count AS staging_number_count,
         s.route_type_count AS staging_type_count,
         s.route_key_count AS staging_key_count,
         s.staging_i_count,
         s.staging_d_count,
         s.staging_route_identifiers,
-
-        -- ================================================
-        -- CLEANED REFERENCE COVERAGE
-        -- ================================================
-
         r.route_number_count AS ref_number_count,
         r.route_type_count AS ref_type_count,
         r.route_key_count AS ref_key_count,
         r.ref_i_count,
         r.ref_d_count,
         r.ref_route_identifiers
-
     FROM unmatched_keys k
-
     LEFT JOIN LATERAL (
-
         SELECT
-
             COUNT(*) AS route_number_count,
-
             COUNT(*) FILTER (
-                WHERE NULLIF(
-                    UPPER(BTRIM(s.relatedroutetype)),
-                    ''
-                ) IS NOT DISTINCT FROM k.related_type_key
+                WHERE NULLIF(UPPER(BTRIM(s.relatedroutetype)), '') IS NOT DISTINCT FROM k.related_type_key
             ) AS route_type_count,
-
             COUNT(*) FILTER (
-                WHERE NULLIF(
-                    UPPER(BTRIM(s.relatedroutetype)),
-                    ''
-                ) IS NOT DISTINCT FROM k.related_type_key
-
-                AND NULLIF(
-                    UPPER(BTRIM(s.relatedroutequalifier)),
-                    ''
-                ) IS NOT DISTINCT FROM k.related_qualifier_key
+                WHERE NULLIF(UPPER(BTRIM(s.relatedroutetype)), '') IS NOT DISTINCT FROM k.related_type_key
+                  AND NULLIF(UPPER(BTRIM(s.relatedroutequalifier)), '') IS NOT DISTINCT FROM k.related_qualifier_key
             ) AS route_key_count,
-
             COUNT(*) FILTER (
-                WHERE NULLIF(
-                    UPPER(BTRIM(s.relatedroutetype)),
-                    ''
-                ) IS NOT DISTINCT FROM k.related_type_key
-
-                AND NULLIF(
-                    UPPER(BTRIM(s.relatedroutequalifier)),
-                    ''
-                ) IS NOT DISTINCT FROM k.related_qualifier_key
-
-                AND LOWER(BTRIM(s.inventorydirection)) = 'i'
+                WHERE NULLIF(UPPER(BTRIM(s.relatedroutetype)), '') IS NOT DISTINCT FROM k.related_type_key
+                  AND NULLIF(UPPER(BTRIM(s.relatedroutequalifier)), '') IS NOT DISTINCT FROM k.related_qualifier_key
+                  AND LOWER(BTRIM(s.inventorydirection)) = 'i'
             ) AS staging_i_count,
-
             COUNT(*) FILTER (
-                WHERE NULLIF(
-                    UPPER(BTRIM(s.relatedroutetype)),
-                    ''
-                ) IS NOT DISTINCT FROM k.related_type_key
-
-                AND NULLIF(
-                    UPPER(BTRIM(s.relatedroutequalifier)),
-                    ''
-                ) IS NOT DISTINCT FROM k.related_qualifier_key
-
-                AND LOWER(BTRIM(s.inventorydirection)) = 'd'
+                WHERE NULLIF(UPPER(BTRIM(s.relatedroutetype)), '') IS NOT DISTINCT FROM k.related_type_key
+                  AND NULLIF(UPPER(BTRIM(s.relatedroutequalifier)), '') IS NOT DISTINCT FROM k.related_qualifier_key
+                  AND LOWER(BTRIM(s.inventorydirection)) = 'd'
             ) AS staging_d_count,
-
-            ARRAY_AGG(
-                DISTINCT BTRIM(s.routeidentifier)
-                ORDER BY BTRIM(s.routeidentifier)
-            ) FILTER (
-                WHERE NULLIF(
-                    UPPER(BTRIM(s.relatedroutetype)),
-                    ''
-                ) IS NOT DISTINCT FROM k.related_type_key
-
-                AND NULLIF(
-                    UPPER(BTRIM(s.relatedroutequalifier)),
-                    ''
-                ) IS NOT DISTINCT FROM k.related_qualifier_key
-            ) AS staging_route_identifiers
-
+            ARRAY_AGG(DISTINCT BTRIM(s.routeidentifier) ORDER BY BTRIM(s.routeidentifier))
+                FILTER (
+                    WHERE NULLIF(UPPER(BTRIM(s.relatedroutetype)), '') IS NOT DISTINCT FROM k.related_type_key
+                      AND NULLIF(UPPER(BTRIM(s.relatedroutequalifier)), '') IS NOT DISTINCT FROM k.related_qualifier_key
+                ) AS staging_route_identifiers
         FROM staging.state_route_lrs s
-
-        WHERE BTRIM(s.stateroutenumber::text)
-            = k.state_route_number_key
-
+        WHERE BTRIM(s.stateroutenumber::text) = k.state_route_number_key
     ) s ON TRUE
-
     LEFT JOIN LATERAL (
-
         SELECT
-
             COUNT(*) AS route_number_count,
-
             COUNT(*) FILTER (
-                WHERE NULLIF(
-                    UPPER(BTRIM(r.related_route_type)),
-                    ''
-                ) IS NOT DISTINCT FROM k.related_type_key
+                WHERE NULLIF(UPPER(BTRIM(r.related_route_type)), '') IS NOT DISTINCT FROM k.related_type_key
             ) AS route_type_count,
-
             COUNT(*) FILTER (
-                WHERE NULLIF(
-                    UPPER(BTRIM(r.related_route_type)),
-                    ''
-                ) IS NOT DISTINCT FROM k.related_type_key
-
-                AND NULLIF(
-                    UPPER(BTRIM(r.related_route_qualifier)),
-                    ''
-                ) IS NOT DISTINCT FROM k.related_qualifier_key
+                WHERE NULLIF(UPPER(BTRIM(r.related_route_type)), '') IS NOT DISTINCT FROM k.related_type_key
+                  AND NULLIF(UPPER(BTRIM(r.related_route_qualifier)), '') IS NOT DISTINCT FROM k.related_qualifier_key
             ) AS route_key_count,
-
             COUNT(*) FILTER (
-                WHERE NULLIF(
-                    UPPER(BTRIM(r.related_route_type)),
-                    ''
-                ) IS NOT DISTINCT FROM k.related_type_key
-
-                AND NULLIF(
-                    UPPER(BTRIM(r.related_route_qualifier)),
-                    ''
-                ) IS NOT DISTINCT FROM k.related_qualifier_key
-
-                AND LOWER(BTRIM(r.inventory_direction)) = 'i'
+                WHERE NULLIF(UPPER(BTRIM(r.related_route_type)), '') IS NOT DISTINCT FROM k.related_type_key
+                  AND NULLIF(UPPER(BTRIM(r.related_route_qualifier)), '') IS NOT DISTINCT FROM k.related_qualifier_key
+                  AND LOWER(BTRIM(r.inventory_direction)) = 'i'
             ) AS ref_i_count,
-
             COUNT(*) FILTER (
-                WHERE NULLIF(
-                    UPPER(BTRIM(r.related_route_type)),
-                    ''
-                ) IS NOT DISTINCT FROM k.related_type_key
-
-                AND NULLIF(
-                    UPPER(BTRIM(r.related_route_qualifier)),
-                    ''
-                ) IS NOT DISTINCT FROM k.related_qualifier_key
-
-                AND LOWER(BTRIM(r.inventory_direction)) = 'd'
+                WHERE NULLIF(UPPER(BTRIM(r.related_route_type)), '') IS NOT DISTINCT FROM k.related_type_key
+                  AND NULLIF(UPPER(BTRIM(r.related_route_qualifier)), '') IS NOT DISTINCT FROM k.related_qualifier_key
+                  AND LOWER(BTRIM(r.inventory_direction)) = 'd'
             ) AS ref_d_count,
-
-            ARRAY_AGG(
-                DISTINCT r.route_identifier
-                ORDER BY r.route_identifier
-            ) FILTER (
-                WHERE NULLIF(
-                    UPPER(BTRIM(r.related_route_type)),
-                    ''
-                ) IS NOT DISTINCT FROM k.related_type_key
-
-                AND NULLIF(
-                    UPPER(BTRIM(r.related_route_qualifier)),
-                    ''
-                ) IS NOT DISTINCT FROM k.related_qualifier_key
-            ) AS ref_route_identifiers
-
+            ARRAY_AGG(DISTINCT r.route_identifier ORDER BY r.route_identifier)
+                FILTER (
+                    WHERE NULLIF(UPPER(BTRIM(r.related_route_type)), '') IS NOT DISTINCT FROM k.related_type_key
+                      AND NULLIF(UPPER(BTRIM(r.related_route_qualifier)), '') IS NOT DISTINCT FROM k.related_qualifier_key
+                ) AS ref_route_identifiers
         FROM ref.state_route_lrs r
-
-        WHERE BTRIM(r.state_route_number::text)
-            = k.state_route_number_key
-
+        WHERE BTRIM(r.state_route_number::text) = k.state_route_number_key
     ) r ON TRUE
 )
-
 SELECT
     *,
-
     CASE
-
         WHEN staging_number_count = 0
             THEN 'State Route number absent from staging'
-
         WHEN staging_type_count = 0
             THEN 'Related-route type absent from staging'
-
         WHEN staging_key_count = 0
             THEN 'Related-route qualifier absent from staging'
-
         WHEN ref_key_count = 0
             THEN 'Present in staging, absent from ref'
-
-        WHEN project_direction_key = 'I'
-             AND ref_i_count = 0
+        WHEN project_direction_key = 'I' AND ref_i_count = 0
             THEN 'Increasing route direction absent from ref'
-
-        WHEN project_direction_key = 'D'
-             AND ref_d_count = 0
+        WHEN project_direction_key = 'D' AND ref_d_count = 0
             THEN 'Decreasing route direction absent from ref'
-
-        WHEN project_direction_key = 'B'
-             AND ref_i_count = 0
-             AND ref_d_count = 0
+        WHEN project_direction_key = 'B' AND ref_i_count = 0 AND ref_d_count = 0
             THEN 'Both route directions absent from ref'
-
-        WHEN project_direction_key = 'B'
-             AND (
-                 ref_i_count = 0
-                 OR ref_d_count = 0
-             )
+        WHEN project_direction_key = 'B' AND (ref_i_count = 0 OR ref_d_count = 0)
             THEN 'Partial bidirectional coverage in ref'
-
         ELSE 'Reference key exists - investigate matching logic'
-
     END AS coverage_gap_status
-
 FROM coverage
-
 ORDER BY
     project_count DESC,
     state_route_number_key,
