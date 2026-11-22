@@ -11,8 +11,6 @@ DROP VIEW IF EXISTS qa.bt_arm_discrepancy;
 
 DROP MATERIALIZED VIEW IF EXISTS qa.sr_bridge_tunnel_evw;
 
-DROP MATERIALIZED VIEW IF EXISTS analysis.dig_once_lrs
-
 -- QA/QC table joining mileposts with state route LRS table
 -- One mile LRS
 DROP TABLE IF EXISTS qa.sr_mp_locations;
@@ -582,7 +580,7 @@ SELECT
 	srbr.arm_qa_status
 FROM qa.sr_bridge_tunnel_evw srbr
 JOIN ref.all_bridge_tunnel br
-    ON br.objectid = srbr.objectid
+    ON br.objectid = srbr.objectid;
 
 -- Public Roads Bridges View
 CREATE OR REPLACE VIEW qa.bt_pub AS
