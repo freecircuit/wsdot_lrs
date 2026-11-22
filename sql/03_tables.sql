@@ -139,11 +139,11 @@ CREATE TABLE ref.roadway_width AS
 SELECT
 	objectid,
 	routeidentifier AS route_identifier,
-	beginaccumulatedroutemile AS inital_route_mile,
+	beginaccumulatedroutemile AS initial_route_mile,
 	endaccumulatedroutemile AS final_route_mile,
 	rdwywidth AS roadway_width,
 	snapshotdate AS snapshot_date,
-	beginstateroutemilepost AS inital_mile_post,
+	beginstateroutemilepost AS initial_mile_post,
 	endstateroutemilepost AS final_mile_post,
 	lrsdate AS lrs_date,
 	shape__length,
