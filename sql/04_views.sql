@@ -18,7 +18,7 @@ DROP VIEW IF EXISTS analysis.dig_once;
 DROP VIEW IF EXISTS qa.vw_bt_arm_sensitivity;
 DROP VIEW IF EXISTS qa.vw_bt_arm;
 DROP VIEW IF EXISTS qa.bt_pub;
-DROP VIEW IF EXISTS qa.bt_arm_discrepancy;
+DROP VIEW IF EXISTS qa.bt_arm_descrepancy;
 DROP MATERIALIZED VIEW IF EXISTS qa.bt_crab_evw;
 DROP MATERIALIZED VIEW IF EXISTS qa.bt_pub_rd_evw;
 DROP MATERIALIZED VIEW IF EXISTS qa.sr_bridge_tunnel_evw;
@@ -198,7 +198,7 @@ SELECT
         WHEN matched.derived_arm IS NULL THEN 'Matched - no derived ARM'
         WHEN b.lrsarm IS NULL THEN 'Matched - no reported ARM'
         WHEN ABS(matched.derived_arm - b.lrsarm) <= 0.01 THEN 'ARM agreement within 0.01 mi'
-        ELSE 'ARM discrepancy'
+        ELSE 'ARM descrepancy'
     END AS arm_qa_status
 FROM ref.all_bridge_tunnel b
 LEFT JOIN LATERAL (
@@ -245,7 +245,7 @@ SELECT
         WHEN matched.derived_arm IS NULL THEN 'Matched - no derived ARM'
         WHEN b.lrsarm IS NULL THEN 'Matched - no reported ARM'
         WHEN ABS(matched.derived_arm - b.lrsarm) <= 0.01 THEN 'ARM agreement within 0.01 mi'
-        ELSE 'ARM discrepancy'
+        ELSE 'ARM descrepancy'
     END AS arm_qa_status
 FROM ref.all_bridge_tunnel b
 JOIN qa.sr_bridge_tunnel_evw srqa
@@ -308,7 +308,7 @@ SELECT
         WHEN matched.derived_arm IS NULL THEN 'Matched - no derived ARM'
         WHEN b.lrsarm IS NULL THEN 'Matched - no reported ARM'
         WHEN ABS(matched.derived_arm - b.lrsarm) <= 0.01 THEN 'ARM agreement within 0.01 mi'
-        ELSE 'ARM discrepancy'
+        ELSE 'ARM descrepancy'
     END AS arm_qa_status
 FROM ref.all_bridge_tunnel b
 JOIN qa.bt_pub_rd_evw prqa
@@ -354,7 +354,7 @@ ANALYZE qa.bt_crab_evw;
 -- 03. BRIDGE & TUNNEL QA / SENSITIVITY VIEWS
 -- ============================================================
 
-CREATE VIEW qa.bt_arm_discrepancy AS
+CREATE VIEW qa.bt_arm_descrepancy AS
 SELECT
     br.*,
     srbr.derived_arm,
@@ -403,7 +403,7 @@ SELECT
         WHEN ABS(arm_difference_miles) <= 0.05 THEN '0.01–0.05 mi'
         WHEN ABS(arm_difference_miles) <= 0.10 THEN '0.05–0.10 mi'
         ELSE 'Greater than 0.10 mi'
-    END AS discrepancy_band
+    END AS descrepancy_band
 FROM qa.vw_bt_arm;
 
 

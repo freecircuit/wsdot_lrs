@@ -14,12 +14,12 @@ DROP VIEW IF EXISTS qa.bt_pub;
 DROP MATERIALIZED VIEW IF EXISTS qa.bt_crab_evw;
 DROP MATERIALIZED VIEW IF EXISTS qa.bt_pub_rd_evw;
 
--- ARM discrepancy views
+-- ARM descrepancy views
 DROP VIEW IF EXISTS qa.bt_arm_001;
 DROP VIEW IF EXISTS qa.bt_arm_005;
 DROP VIEW IF EXISTS qa.bt_arm_01;
 DROP VIEW IF EXISTS qa.vw_bt_arm_sensitivity;
-DROP VIEW IF EXISTS qa.bt_arm_discrepancy;
+DROP VIEW IF EXISTS qa.bt_arm_descrepancy;
 DROP VIEW IF EXISTS qa.vw_bt_arm;
 
 -- Primary bridge/tunnel materialized view
