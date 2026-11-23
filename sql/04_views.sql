@@ -191,14 +191,15 @@ SELECT
     matched.derived_arm,
     matched.distance_to_route,
     matched.derived_arm - b.lrsarm AS arm_difference_miles,
-    ABS(matched.derived_arm - b.lrsarm) * 5280 AS arm_difference_feet,
+    abs(matched.derived_arm - b.lrsarm) * 5280::double precision AS arm_difference_feet,
     CASE
         WHEN b.geom IS NULL THEN 'Missing source geometry'
         WHEN matched.route_identifier IS NULL THEN 'No State Route match'
         WHEN matched.derived_arm IS NULL THEN 'Matched - no derived ARM'
         WHEN b.lrsarm IS NULL THEN 'Matched - no reported ARM'
-        WHEN ABS(matched.derived_arm - b.lrsarm) <= 0.01 THEN 'ARM agreement within 0.01 mi'
-        ELSE 'ARM descrepancy'
+        WHEN abs(matched.derived_arm - b.lrsarm) <= 0.01
+            THEN 'ARM agreement within 0.01 mi'
+        ELSE 'ARM discrepancy'
     END AS arm_qa_status
 FROM ref.all_bridge_tunnel b
 LEFT JOIN LATERAL (
@@ -210,13 +211,30 @@ LEFT JOIN LATERAL (
         ST_InterpolatePoint(d.geom, b.geom) AS derived_arm,
         ST_Distance(b.geom, d.geom) AS distance_to_route
     FROM ref.state_route_lrs sr
-    CROSS JOIN LATERAL ST_Dump(sr.geom) AS d
-    WHERE b.geom IS NOT NULL
-      AND UPPER(REGEXP_REPLACE(sr.route_identifier, '[id]$', '', 'i'))
-          = UPPER(NULLIF(BTRIM(b.lrsrouteid), ''))
-    ORDER BY ST_Distance(b.geom, d.geom)
+    CROSS JOIN LATERAL ST_Dump(sr.geom) d(path, geom)
+    WHERE
+        b.geom IS NOT NULL
+        AND upper(
+            regexp_replace(
+                sr.route_identifier,
+                '[id]$',
+                '',
+                'i'
+            )
+        ) = upper(NULLIF(btrim(b.lrsrouteid), ''))
+    ORDER BY
+        CASE
+            WHEN upper(b.lrsinventorydirection) = 'I'
+                 AND lower(sr.inventory_direction) = 'i'
+                THEN 0
+            WHEN upper(b.lrsinventorydirection) = 'D'
+                 AND lower(sr.inventory_direction) = 'd'
+                THEN 0
+            ELSE 1
+        END,
+        ST_Distance(b.geom, d.geom)
     LIMIT 1
-) AS matched ON TRUE;
+) matched ON true;
 
 CREATE INDEX idx_sr_bridge_prl_objectid ON qa.sr_bridge_tunnel_evw (objectid);
 CREATE INDEX idx_sr_bridge_prl_status ON qa.sr_bridge_tunnel_evw (arm_qa_status);
